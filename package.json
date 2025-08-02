@@ -1,0 +1,130 @@
+{
+  "name": "devcanvas-ai",
+  "displayName": "DevCanvas AI",
+  "description": "AI-powered code assistant with deep codebase understanding",
+  "version": "1.0.0",
+  "publisher": "devcanvas",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "assistant",
+    "code-analysis",
+    "documentation",
+    "diagram"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "devcanvas-ai.chatView",
+          "name": "DevCanvas AI",
+          "when": "devcanvas-ai.enabled"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "devcanvas-ai.indexWorkspace",
+        "title": "Index Current Workspace",
+        "category": "DevCanvas AI",
+        "icon": "$(search)"
+      },
+      {
+        "command": "devcanvas-ai.clearIndex",
+        "title": "Clear Index",
+        "category": "DevCanvas AI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "devcanvas-ai.configure",
+        "title": "Configure API Keys",
+        "category": "DevCanvas AI",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "devcanvas-ai.generateReadme",
+        "title": "Generate README",
+        "category": "DevCanvas AI"
+      },
+      {
+        "command": "devcanvas-ai.generateDiagram",
+        "title": "Generate Architecture Diagram",
+        "category": "DevCanvas AI"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "devcanvas-ai.generateReadme",
+          "when": "explorerResourceIsFolder",
+          "group": "DevCanvas AI"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DevCanvas AI",
+      "properties": {
+        "devcanvas.userProfile": {
+          "type": "object",
+          "description": "User profile and API configuration"
+        },
+        "devcanvas.codebases": {
+          "type": "array",
+          "description": "Configured codebases for analysis"
+        },
+        "devcanvas.autoIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically index workspace on startup"
+        },
+        "devcanvas.maxChunks": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of code chunks to retrieve for context"
+        },
+        "devcanvas.chunkSize": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum size of code chunks in characters"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src/",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "@lancedb/lancedb": "^0.4.0",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
+    "jszip": "^3.10.1"
+  }
+}
