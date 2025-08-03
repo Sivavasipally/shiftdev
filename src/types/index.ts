@@ -1,9 +1,16 @@
 export interface UserProfile {
   id: string;
   name: string;
-  selectedLLM: 'gemini-flash' | 'gemini-pro' | 'openai-gpt4' | 'claude-3';
+  selectedLLM: 'gemini-flash' | 'gemini-pro' | 'openai-gpt4' | 'claude-3' | 'gpt-4-turbo' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
   apiKeys: Record<string, string>;
   embeddingModel: string;
+  preferences?: {
+    preferredProvider?: 'openai' | 'anthropic' | 'google';
+    maxCostPerRequest?: number;
+    prioritizeSpeed?: boolean;
+    prioritizeQuality?: boolean;
+    autoFallback?: boolean;
+  };
 }
 
 export interface CodebaseConfig {
@@ -43,6 +50,14 @@ export interface CodeChunk {
     functionName?: string;
     complexity?: number;
     dependencies?: string[];
+    isInterface?: boolean;
+    isEnum?: boolean;
+    isAnnotation?: boolean;
+    framework?: string;
+    frameworkVersion?: string;
+    frameworkType?: string;
+    componentType?: string;
+    isFrameworkSummary?: boolean;
   };
   denseVector: number[];
   sparseVector: Record<string, number>;
@@ -66,6 +81,13 @@ export interface LLMResponse {
   usage?: {
     inputTokens: number;
     outputTokens: number;
+  };
+  metadata?: {
+    model: string;
+    provider: string;
+    latency: number;
+    cost: number;
+    timestamp: Date;
   };
 }
 

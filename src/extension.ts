@@ -6,10 +6,18 @@ import { Configuration } from './utils/configuration';
 import { Storage } from './utils/storage';
 import { GitLabProvider } from './integrations/GitLabProvider';
 import { BitbucketProvider } from './integrations/BitbucketProvider';
+import { RepositoryManager } from './features/repositoryManager';
+import { OnboardingManager } from './features/onboardingManager';
+import { ZipAnalyzer } from './features/zipAnalyzer';
+import { QuickActionsProvider } from './views/QuickActionsProvider';
 
 let ragManager: RAGManager | undefined;
 let chatController: ChatController | undefined;
 let sidebarProvider: SidebarProvider | undefined;
+let repositoryManager: RepositoryManager | undefined;
+let onboardingManager: OnboardingManager | undefined;
+let zipAnalyzer: ZipAnalyzer | undefined;
+let quickActionsProvider: QuickActionsProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('🎨 DevCanvas AI is now active!');
@@ -18,27 +26,55 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize storage
     const storage = new Storage(context);
     
+    // Initialize onboarding manager
+    onboardingManager = new OnboardingManager(context, storage);
+    
     // Get or create user profile
     let userProfile = await Configuration.getUserProfile();
     if (!userProfile) {
       userProfile = await Configuration.createDefaultProfile();
-      vscode.window.showInformationMessage(
-        'Welcome to DevCanvas AI! Please configure your API keys using the "Configure API Keys" command.'
-      );
+      // Show onboarding for new users (don't await to prevent blocking activation)
+      setTimeout(async () => {
+        try {
+          await onboardingManager?.showWelcomeMessage();
+        } catch (error) {
+          console.log('Onboarding was cancelled or failed:', error);
+        }
+      }, 1000);
+    } else {
+      // Check if returning user needs guidance (don't await to prevent blocking activation)
+      setTimeout(async () => {
+        try {
+          const isOnboardingComplete = await onboardingManager?.isOnboardingComplete();
+          if (!isOnboardingComplete) {
+            await onboardingManager?.showQuickStartGuide();
+          }
+        } catch (error) {
+          console.log('Quick start guide was cancelled or failed:', error);
+        }
+      }, 1000);
     }
 
     // Check if workspace is available
     const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!workspaceUri) {
-      vscode.window.showWarningMessage('DevCanvas AI requires an open workspace to function properly.');
-      return;
+      // Don't return immediately - still register commands and show guidance
+      console.log('No workspace folder found, some features will be limited until workspace is opened');
     }
 
-    // Initialize core components
-    ragManager = new RAGManager(workspaceUri, userProfile);
-    await ragManager.initialize();
+    // Initialize core components only if workspace is available
+    if (workspaceUri) {
+      ragManager = new RAGManager(workspaceUri, userProfile);
+      await ragManager.initialize();
+    }
 
-    chatController = new ChatController(ragManager, storage, userProfile);
+    chatController = new ChatController(ragManager as any, storage, userProfile);
+    
+    // Initialize repository manager
+    repositoryManager = new RepositoryManager();
+    
+    // Initialize ZIP analyzer
+    zipAnalyzer = new ZipAnalyzer();
     
     // Register sidebar provider
     sidebarProvider = new SidebarProvider(context.extensionUri, chatController);
@@ -46,8 +82,14 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebarProvider)
     );
 
+    // Register quick actions provider
+    quickActionsProvider = new QuickActionsProvider();
+    context.subscriptions.push(
+      vscode.window.registerTreeDataProvider('devcanvas-ai.quickActions', quickActionsProvider)
+    );
+
     // Register commands
-    registerCommands(context, ragManager, storage);
+    registerCommands(context, ragManager as any, storage);
 
     // Auto-index on startup if enabled and user has API keys configured
     if (Configuration.isAutoIndexEnabled()) {
@@ -56,7 +98,7 @@ export async function activate(context: vscode.ExtensionContext) {
       
       if (shouldIndex) {
         // Check if user has API keys configured before auto-indexing
-        if (userProfile && userProfile.apiKeys && Object.keys(userProfile.apiKeys).length > 0) {
+        if (ragManager && workspaceUri && userProfile && userProfile.apiKeys && Object.keys(userProfile.apiKeys).length > 0) {
           vscode.window.showInformationMessage(
             'DevCanvas AI is indexing your workspace in the background...'
           );
@@ -71,8 +113,8 @@ export async function activate(context: vscode.ExtensionContext) {
             );
           }
         } else {
-          // Skip auto-indexing if no API keys are configured
-          console.log('Skipping auto-indexing: No API keys configured');
+          // Skip auto-indexing if no API keys are configured or no workspace
+          console.log('Skipping auto-indexing: No API keys configured or no workspace');
         }
       }
     }
@@ -217,6 +259,132 @@ function registerCommands(
     await connectToBitbucket();
   });
 
+  // Clone repository command
+  const cloneRepositoryCommand = vscode.commands.registerCommand('devcanvas-ai.cloneRepository', async () => {
+    if (!repositoryManager) {
+      vscode.window.showErrorMessage('Repository manager is not initialized');
+      return;
+    }
+    await repositoryManager.showCloneInterface();
+  });
+
+  // Onboarding commands
+  const showOnboardingCommand = vscode.commands.registerCommand('devcanvas-ai.showOnboarding', async () => {
+    if (!onboardingManager) {
+      vscode.window.showErrorMessage('Onboarding manager is not initialized');
+      return;
+    }
+    await onboardingManager.showOnboardingWizard();
+  });
+
+  const showQuickStartCommand = vscode.commands.registerCommand('devcanvas-ai.showQuickStart', async () => {
+    if (!onboardingManager) {
+      vscode.window.showErrorMessage('Onboarding manager is not initialized');
+      return;
+    }
+    await onboardingManager.showQuickStartGuide();
+  });
+
+  // ZIP analyzer command
+  const analyzeZipCommand = vscode.commands.registerCommand('devcanvas-ai.analyzeZip', async () => {
+    if (!zipAnalyzer) {
+      vscode.window.showErrorMessage('ZIP analyzer is not initialized');
+      return;
+    }
+    await zipAnalyzer.showZipUploadInterface();
+  });
+
+  // File analysis commands
+  const analyzeFileCommand = vscode.commands.registerCommand('devcanvas-ai.analyzeFile', async () => {
+    if (!chatController) {
+      vscode.window.showErrorMessage('DevCanvas AI is not properly initialized');
+      return;
+    }
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage('No active file to analyze');
+      return;
+    }
+
+    const fileName = editor.document.fileName;
+    const relativePath = vscode.workspace.asRelativePath(fileName);
+    
+    try {
+      await chatController.processMessage(`Analyze this file: ${relativePath}. Provide insights on code quality, structure, and potential improvements.`);
+      
+      if (sidebarProvider) {
+        sidebarProvider.focus();
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  const explainCodeCommand = vscode.commands.registerCommand('devcanvas-ai.explainCode', async () => {
+    if (!chatController) {
+      vscode.window.showErrorMessage('DevCanvas AI is not properly initialized');
+      return;
+    }
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage('No active editor with selected code');
+      return;
+    }
+
+    const selection = editor.selection;
+    const selectedText = editor.document.getText(selection);
+    
+    if (!selectedText.trim()) {
+      vscode.window.showWarningMessage('Please select some code to explain');
+      return;
+    }
+
+    try {
+      await chatController.processMessage(`Explain this code:\n\n\`\`\`\n${selectedText}\n\`\`\`\n\nProvide a clear explanation of what this code does, how it works, and any notable patterns or techniques used.`);
+      
+      if (sidebarProvider) {
+        sidebarProvider.focus();
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to explain code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  const generateTestsCommand = vscode.commands.registerCommand('devcanvas-ai.generateTests', async () => {
+    if (!chatController) {
+      vscode.window.showErrorMessage('DevCanvas AI is not properly initialized');
+      return;
+    }
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage('No active editor with selected code');
+      return;
+    }
+
+    const selection = editor.selection;
+    const selectedText = editor.document.getText(selection);
+    
+    if (!selectedText.trim()) {
+      vscode.window.showWarningMessage('Please select some code to generate tests for');
+      return;
+    }
+
+    const language = editor.document.languageId;
+
+    try {
+      await chatController.processMessage(`Generate comprehensive tests for this ${language} code:\n\n\`\`\`${language}\n${selectedText}\n\`\`\`\n\nProvide unit tests that cover different scenarios, edge cases, and expected behaviors. Include setup and assertion examples.`);
+      
+      if (sidebarProvider) {
+        sidebarProvider.focus();
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to generate tests: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
   // Register all commands
   context.subscriptions.push(
     indexCommand,
@@ -225,7 +393,14 @@ function registerCommands(
     generateReadmeCommand,
     generateDiagramCommand,
     gitlabCommand,
-    bitbucketCommand
+    bitbucketCommand,
+    cloneRepositoryCommand,
+    showOnboardingCommand,
+    showQuickStartCommand,
+    analyzeZipCommand,
+    analyzeFileCommand,
+    explainCodeCommand,
+    generateTestsCommand
   );
 }
 
@@ -458,6 +633,12 @@ export async function deactivate() {
   try {
     if (ragManager) {
       await ragManager.close();
+    }
+    if (repositoryManager) {
+      repositoryManager.dispose();
+    }
+    if (zipAnalyzer) {
+      zipAnalyzer.dispose();
     }
     console.log('✅ DevCanvas AI deactivated successfully');
   } catch (error) {

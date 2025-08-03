@@ -5,27 +5,59 @@ import { DiagramGenerator } from '../features/diagramGenerator';
 import { ReadmeGenerator } from '../features/readmeGenerator';
 import { AgileGenerator } from '../features/agileGenerator';
 import { QualityAnalyzer } from '../features/qualityAnalyzer';
+import { FrameworkAnalyzer } from '../features/frameworkAnalyzer';
 
 export class ChatController {
-  private diagramGenerator: DiagramGenerator;
-  private readmeGenerator: ReadmeGenerator;
-  private agileGenerator: AgileGenerator;
-  private qualityAnalyzer: QualityAnalyzer;
+  private diagramGenerator: DiagramGenerator | null;
+  private readmeGenerator: ReadmeGenerator | null;
+  private agileGenerator: AgileGenerator | null;
+  private qualityAnalyzer: QualityAnalyzer | null;
+  private frameworkAnalyzer: FrameworkAnalyzer | null;
 
   constructor(
-    private ragManager: RAGManager,
+    private ragManager: RAGManager | undefined,
     private storage: Storage,
     private userProfile: UserProfile
   ) {
-    this.diagramGenerator = new DiagramGenerator(ragManager);
-    this.readmeGenerator = new ReadmeGenerator(ragManager);
-    this.agileGenerator = new AgileGenerator(ragManager);
-    this.qualityAnalyzer = new QualityAnalyzer(ragManager);
+    if (ragManager) {
+      this.diagramGenerator = new DiagramGenerator(ragManager);
+      this.readmeGenerator = new ReadmeGenerator(ragManager);
+      this.agileGenerator = new AgileGenerator(ragManager);
+      this.qualityAnalyzer = new QualityAnalyzer(ragManager);
+      this.frameworkAnalyzer = new FrameworkAnalyzer(ragManager);
+    } else {
+      // Initialize with null - handle in methods
+      this.diagramGenerator = null;
+      this.readmeGenerator = null;
+      this.agileGenerator = null;
+      this.qualityAnalyzer = null;
+      this.frameworkAnalyzer = null;
+    }
   }
 
   updateUserProfile(profile: UserProfile): void {
     this.userProfile = profile;
-    this.ragManager.updateUserProfile(profile);
+    if (this.ragManager) {
+      this.ragManager.updateUserProfile(profile);
+    }
+  }
+
+  private getWorkspaceRequiredMessage(): string {
+    return `🚀 **Welcome to DevCanvas AI!**
+
+To get started, please:
+
+1. **Open a workspace**: Use File → Open Folder to open your code project
+2. **Configure API keys**: Run the "DevCanvas AI: Configure API Keys" command
+3. **Index your code**: Run "DevCanvas AI: Index Current Workspace" to enable AI features
+
+Once set up, you can:
+- Ask questions about your code
+- Generate documentation and diagrams  
+- Analyze code quality
+- Clone repositories
+
+Type "help" for more guidance or use the commands above to begin!`;
   }
 
   async processMessage(content: string): Promise<{
@@ -63,6 +95,9 @@ export class ChatController {
           break;
         case 'stats':
           response = await this.handleStatsCommand();
+          break;
+        case 'framework':
+          response = await this.handleFrameworkCommand(command.params);
           break;
         default:
           response = await this.handleGeneralQuery(content);
@@ -136,15 +171,47 @@ export class ChatController {
       return { type: 'stats', params: {} };
     }
 
+    // Framework analysis commands
+    if (lowerContent.includes('framework') || lowerContent.includes('spring boot') || 
+        lowerContent.includes('react') || lowerContent.includes('angular') ||
+        lowerContent.includes('flask') || lowerContent.includes('fastapi') ||
+        lowerContent.includes('analyze framework') || lowerContent.includes('framework analysis')) {
+      
+      // Detect specific framework
+      let framework = '';
+      if (lowerContent.includes('spring boot')) framework = 'spring boot';
+      else if (lowerContent.includes('spring')) framework = 'spring';
+      else if (lowerContent.includes('react')) framework = 'react';
+      else if (lowerContent.includes('angular')) framework = 'angular';
+      else if (lowerContent.includes('flask')) framework = 'flask';
+      else if (lowerContent.includes('fastapi')) framework = 'fastapi';
+      
+      return { type: 'framework', params: { framework, content } };
+    }
+
     return { type: 'general', params: {} };
   }
 
   private async handleDiagramCommand(params: any): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       if (stats.totalChunks === 0) {
         return {
           content: "No code has been indexed yet. Please run 'Index Current Workspace' command first.",
+          metadata: {}
+        };
+      }
+
+      if (!this.diagramGenerator) {
+        return {
+          content: "Diagram generation is not available. Please ensure workspace is open and indexed.",
           metadata: {}
         };
       }
@@ -162,10 +229,12 @@ export class ChatController {
       }
 
       return {
-        content: `# ${params.subtype.charAt(0).toUpperCase() + params.subtype.slice(1)} Diagram\n\n${diagram.content}\n\n${diagram.explanation}`,
+        content: `# ${params.subtype.charAt(0).toUpperCase() + params.subtype.slice(1)} Diagram\n\n\`\`\`mermaid\n${diagram.content}\n\`\`\`\n\n${diagram.explanation}`,
         metadata: {
-          diagram,
-          diagramType: params.subtype
+          diagram: diagram.content,
+          diagramType: params.subtype,
+          navigationData: diagram.navigationData,
+          isDiagram: true
         }
       };
     } catch (error) {
@@ -178,10 +247,24 @@ export class ChatController {
 
   private async handleReadmeCommand(params: any): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       if (stats.totalChunks === 0) {
         return {
           content: "No code has been indexed yet. Please run 'Index Current Workspace' command first.",
+          metadata: {}
+        };
+      }
+
+      if (!this.readmeGenerator) {
+        return {
+          content: "README generation is not available. Please ensure workspace is open and indexed.",
           metadata: {}
         };
       }
@@ -205,10 +288,24 @@ export class ChatController {
 
   private async handleAgileCommand(params: any): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       if (stats.totalChunks === 0) {
         return {
           content: "No code has been indexed yet. Please run 'Index Current Workspace' command first.",
+          metadata: {}
+        };
+      }
+
+      if (!this.agileGenerator) {
+        return {
+          content: "Agile artifacts generation is not available. Please ensure workspace is open and indexed.",
           metadata: {}
         };
       }
@@ -253,10 +350,24 @@ export class ChatController {
 
   private async handleQualityCommand(params: any): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       if (stats.totalChunks === 0) {
         return {
           content: "No code has been indexed yet. Please run 'Index Current Workspace' command first.",
+          metadata: {}
+        };
+      }
+
+      if (!this.qualityAnalyzer) {
+        return {
+          content: "Code quality analysis is not available. Please ensure workspace is open and indexed.",
           metadata: {}
         };
       }
@@ -313,13 +424,28 @@ export class ChatController {
 
   private async handleStatsCommand(): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       
       let content = `# Codebase Statistics\n\n`;
       content += `- **Total Code Chunks:** ${stats.totalChunks}\n`;
       content += `- **Files Analyzed:** ${stats.fileCount}\n`;
       content += `- **Classes Found:** ${stats.classCount}\n`;
-      content += `- **Functions Found:** ${stats.functionCount}\n\n`;
+      content += `- **Functions Found:** ${stats.functionCount}\n`;
+      
+      if (stats.bm25VocabularySize && stats.bm25DocumentCount) {
+        content += `\n## BM25 Search Index\n`;
+        content += `- **Vocabulary Size:** ${stats.bm25VocabularySize} unique terms\n`;
+        content += `- **Indexed Documents:** ${stats.bm25DocumentCount}\n`;
+      }
+      
+      content += `\n`;
 
       if (stats.totalChunks === 0) {
         content += `No code has been indexed yet. Run the "Index Current Workspace" command to analyze your codebase.\n`;
@@ -337,8 +463,155 @@ export class ChatController {
     }
   }
 
+  private async handleFrameworkCommand(params: any): Promise<any> {
+    try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
+      const stats = await this.ragManager.getCodebaseStats();
+      if (stats.totalChunks === 0) {
+        return {
+          content: "No code has been indexed yet. Please run 'Index Current Workspace' command first.",
+          metadata: {}
+        };
+      }
+
+      if (!this.frameworkAnalyzer) {
+        return {
+          content: "Framework analysis is not available. Please ensure workspace is open and indexed.",
+          metadata: {}
+        };
+      }
+
+      // If no specific framework provided, detect and list all frameworks
+      if (!params.framework) {
+        const detectedFrameworks = await this.ragManager.getDetectedFrameworks();
+        
+        if (detectedFrameworks.length === 0) {
+          return {
+            content: "No frameworks detected in this codebase. The analyzer supports Spring Boot, Spring, React, Angular, Flask, and FastAPI.",
+            metadata: {}
+          };
+        }
+
+        let content = `# Detected Frameworks\n\n`;
+        detectedFrameworks.forEach((framework, index) => {
+          content += `${index + 1}. **${framework.name}** ${framework.version || ''}\n`;
+          content += `   - Type: ${framework.type}\n`;
+          content += `   - Language: ${framework.language}\n\n`;
+        });
+
+        content += `You can get detailed analysis by asking:\n`;
+        content += `- "Analyze Spring Boot framework"\n`;
+        content += `- "React framework analysis"\n`;
+        content += `- "Flask security analysis"\n`;
+
+        return {
+          content,
+          metadata: { detectedFrameworks }
+        };
+      }
+
+      // Perform deep framework analysis
+      const analysis = await this.frameworkAnalyzer.analyzeFramework(params.framework);
+      
+      let content = `# ${analysis.framework} Framework Analysis\n\n`;
+      
+      // Architecture section
+      content += `## Architecture\n\n`;
+      if (analysis.architecture.layers.length > 0) {
+        content += `**Layers:** ${analysis.architecture.layers.join(', ')}\n\n`;
+      }
+      if (analysis.architecture.patterns.length > 0) {
+        content += `**Patterns:** ${analysis.architecture.patterns.join(', ')}\n\n`;
+      }
+      if (analysis.architecture.components.length > 0) {
+        content += `**Components Found:** ${analysis.architecture.components.length}\n\n`;
+        analysis.architecture.components.slice(0, 5).forEach(comp => {
+          content += `- **${comp.name}** (${comp.type}): ${comp.purpose}\n`;
+        });
+        if (analysis.architecture.components.length > 5) {
+          content += `- ... and ${analysis.architecture.components.length - 5} more components\n`;
+        }
+        content += `\n`;
+      }
+
+      // Security section
+      if (analysis.security.vulnerabilities.length > 0) {
+        content += `## Security Issues\n\n`;
+        analysis.security.vulnerabilities.forEach((vuln, index) => {
+          content += `### ${index + 1}. ${vuln.type} (${vuln.severity.toUpperCase()})\n`;
+          content += `**Location:** \`${vuln.location}\`\n`;
+          content += `**Description:** ${vuln.description}\n`;
+          content += `**Recommendation:** ${vuln.recommendation}\n\n`;
+        });
+      }
+
+      // Performance section
+      if (analysis.performance.issues.length > 0) {
+        content += `## Performance Issues\n\n`;
+        analysis.performance.issues.forEach((issue, index) => {
+          content += `### ${index + 1}. ${issue.type} (${issue.impact.toUpperCase()} impact)\n`;
+          content += `**Location:** \`${issue.location}\`\n`;
+          content += `**Description:** ${issue.description}\n`;
+          content += `**Solution:** ${issue.solution}\n\n`;
+        });
+      }
+
+      // Best practices section
+      if (analysis.bestPractices.violations.length > 0) {
+        content += `## Best Practice Violations\n\n`;
+        analysis.bestPractices.violations.forEach((violation, index) => {
+          content += `### ${index + 1}. ${violation.practice}\n`;
+          content += `**Violation:** ${violation.violation}\n`;
+          content += `**Location:** \`${violation.location}\`\n`;
+          content += `**Recommendation:** ${violation.recommendation}\n\n`;
+        });
+      }
+
+      // Code structure metrics
+      content += `## Code Quality Metrics\n\n`;
+      content += `- **Average Complexity:** ${analysis.codeStructure.complexity.toFixed(2)}\n`;
+      content += `- **Maintainability Index:** ${analysis.codeStructure.maintainability.toFixed(2)}/100\n`;
+      content += `- **Estimated Test Coverage:** ${analysis.codeStructure.testCoverage.toFixed(1)}%\n\n`;
+
+      // Recommendations
+      if (analysis.bestPractices.recommendations.length > 0) {
+        content += `## Recommendations\n\n`;
+        analysis.bestPractices.recommendations.forEach((rec, index) => {
+          content += `${index + 1}. ${rec}\n`;
+        });
+      }
+
+      return {
+        content,
+        metadata: {
+          frameworkAnalysis: analysis,
+          framework: params.framework
+        }
+      };
+
+    } catch (error) {
+      return {
+        content: `Failed to analyze framework: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: {}
+      };
+    }
+  }
+
   private async handleGeneralQuery(content: string): Promise<any> {
     try {
+      if (!this.ragManager) {
+        return {
+          content: this.getWorkspaceRequiredMessage(),
+          metadata: {}
+        };
+      }
+
       const stats = await this.ragManager.getCodebaseStats();
       if (stats.totalChunks === 0) {
         return {

@@ -36,14 +36,57 @@ export class FileUtils {
 
   static isTextFile(filePath: string): boolean {
     const textExtensions = [
-      '.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cpp', '.c', '.h', '.hpp',
-      '.cs', '.go', '.rs', '.php', '.rb', '.swift', '.kt', '.scala', '.clj',
-      '.html', '.css', '.scss', '.sass', '.less', '.xml', '.json', '.yaml', '.yml',
-      '.md', '.txt', '.sql', '.sh', '.bat', '.ps1', '.dockerfile', '.gitignore'
+      // JavaScript/TypeScript
+      '.ts', '.js', '.tsx', '.jsx', '.mjs', '.cjs', '.es6', '.es',
+      // Python
+      '.py', '.pyw', '.pyi', '.pyc', '.pyd', '.pyo', '.pyz', '.pyzw',
+      // Java/JVM
+      '.java', '.kt', '.scala', '.groovy', '.clj', '.cljs',
+      // C/C++
+      '.cpp', '.c', '.cc', '.cxx', '.c++', '.h', '.hpp', '.hxx', '.h++',
+      // Other languages
+      '.cs', '.go', '.rs', '.php', '.rb', '.swift', '.m', '.mm',
+      // Web technologies
+      '.html', '.htm', '.xhtml', '.xml', '.jsp', '.asp', '.aspx',
+      '.css', '.scss', '.sass', '.less', '.stylus',
+      // Config/Data files
+      '.json', '.jsonc', '.json5', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf',
+      '.properties', '.env', '.dotenv',
+      // Documentation
+      '.md', '.mdx', '.txt', '.rst', '.adoc', '.tex',
+      // Scripts
+      '.sql', '.sh', '.bash', '.zsh', '.fish', '.ps1', '.cmd', '.bat',
+      // Docker/Container
+      '.dockerfile', 'Dockerfile', '.dockerignore',
+      // Git
+      '.gitignore', '.gitattributes', '.gitmodules',
+      // Build/Package files
+      '.gradle', '.maven', '.sbt', '.cmake', '.make', 'Makefile', 'makefile',
+      // Framework specific
+      '.vue', '.svelte', '.angular', '.ng', '.spec.ts', '.spec.js', '.test.ts', '.test.js',
+      // Spring Boot specific
+      '.xml', '.properties', '.yml', '.yaml'
     ];
     
     const ext = path.extname(filePath).toLowerCase();
-    return textExtensions.includes(ext);
+    const fileName = path.basename(filePath).toLowerCase();
+    
+    // Check by extension
+    if (textExtensions.includes(ext)) {
+      return true;
+    }
+    
+    // Check special files without extensions
+    const specialFiles = [
+      'dockerfile', 'makefile', 'rakefile', 'gemfile', 'procfile',
+      'requirements.txt', 'setup.py', 'pyproject.toml', 'poetry.lock',
+      'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+      'tsconfig.json', 'jsconfig.json', 'webpack.config.js', 'vite.config.js',
+      'angular.json', '.angular-cli.json', 'nx.json',
+      'pom.xml', 'build.gradle', 'settings.gradle', 'build.sbt'
+    ];
+    
+    return specialFiles.includes(fileName);
   }
 
   static shouldIgnoreFile(filePath: string, workspaceRoot: string): boolean {

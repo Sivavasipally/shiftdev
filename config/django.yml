@@ -1,0 +1,426 @@
+name: Django
+version: "5.0"
+description: "High-level Python web framework for rapid development"
+language: python
+type: web_framework
+
+# File patterns that indicate Django usage
+file_patterns:
+  - "manage.py"
+  - "wsgi.py"
+  - "asgi.py"
+  - "settings.py"
+  - "**/settings/**"
+  - "**/migrations/**"
+  - "models.py"
+  - "views.py"
+  - "forms.py"
+  - "admin.py"
+  - "urls.py"
+  - "serializers.py"
+  - "apps.py"
+
+# Content patterns for detection
+content_patterns:
+  imports:
+    - "from django"
+    - "import django"
+    - "from django.db import models"
+    - "from django.views"
+    - "from django.http"
+    - "from django.urls"
+    - "from django.forms"
+    - "from django.contrib"
+    - "from django.conf"
+    - "from rest_framework"
+    - "from django_extensions"
+
+  decorators:
+    - "@api_view"
+    - "@permission_classes"
+    - "@authentication_classes"
+    - "@csrf_exempt"
+    - "@require_http_methods"
+    - "@login_required"
+    - "@staff_member_required"
+    - "@cache_page"
+    - "@transaction.atomic"
+
+  class_patterns:
+    - "class.*\\(models\\.Model\\)"
+    - "class.*\\(forms\\.Form\\)"
+    - "class.*\\(forms\\.ModelForm\\)"
+    - "class.*\\(View\\)"
+    - "class.*\\(ListView\\)"
+    - "class.*\\(DetailView\\)"
+    - "class.*\\(CreateView\\)"
+    - "class.*\\(UpdateView\\)"
+    - "class.*\\(DeleteView\\)"
+    - "class.*\\(APIView\\)"
+    - "class.*\\(ViewSet\\)"
+    - "class.*\\(ModelViewSet\\)"
+    - "class.*\\(serializers\\.ModelSerializer\\)"
+    - "class.*\\(admin\\.ModelAdmin\\)"
+
+  function_patterns:
+    - "def get_queryset"
+    - "def get_context_data"
+    - "def form_valid"
+    - "def get_object"
+    - "def perform_create"
+    - "def perform_update"
+    - "def perform_destroy"
+
+# Framework-specific components
+components:
+  models:
+    file_patterns: ["models.py", "**/models/**/*.py"]
+    class_patterns: ["class.*\\(models\\.Model\\)"]
+    purpose: "Data models and database structure"
+    conventions:
+      - "Use PascalCase for model names"
+      - "Use snake_case for field names"
+      - "Include __str__ method for readable representation"
+      - "Use related_name for reverse relationships"
+      - "Add Meta class for model options"
+
+  views:
+    file_patterns: ["views.py", "**/views/**/*.py"]
+    class_patterns: ["class.*\\(.*View\\)", "class.*\\(APIView\\)"]
+    function_patterns: ["def.*\\(request"]
+    purpose: "Request handling and response generation"
+    conventions:
+      - "Use class-based views for complex logic"
+      - "Use function-based views for simple operations"
+      - "Return appropriate HTTP responses"
+      - "Handle exceptions gracefully"
+      - "Use mixins for shared functionality"
+
+  urls:
+    file_patterns: ["urls.py", "**/urls/**/*.py"]
+    content_patterns: ["urlpatterns", "path\\(", "re_path\\(", "include\\("]
+    purpose: "URL routing and pattern matching"
+    conventions:
+      - "Use descriptive URL names"
+      - "Group related URLs in app-specific files"
+      - "Use namespaces for app URLs"
+      - "Include trailing slashes consistently"
+
+  forms:
+    file_patterns: ["forms.py", "**/forms/**/*.py"]
+    class_patterns: ["class.*\\(forms\\..*Form\\)"]
+    purpose: "Form handling and validation"
+    conventions:
+      - "Use ModelForm for model-based forms"
+      - "Override clean methods for custom validation"
+      - "Use widgets for custom form rendering"
+      - "Handle form errors appropriately"
+
+  admin:
+    file_patterns: ["admin.py", "**/admin/**/*.py"]
+    class_patterns: ["class.*\\(admin\\.ModelAdmin\\)"]
+    content_patterns: ["admin.site.register"]
+    purpose: "Administrative interface configuration"
+    conventions:
+      - "Register models with admin classes"
+      - "Customize list_display and list_filter"
+      - "Use fieldsets for organized forms"
+      - "Add search capabilities where appropriate"
+
+  serializers:
+    file_patterns: ["serializers.py", "**/serializers/**/*.py", "**/api/**/*.py"]
+    class_patterns: ["class.*\\(serializers\\..*Serializer\\)"]
+    purpose: "API data serialization and validation"
+    conventions:
+      - "Use ModelSerializer for model-based APIs"
+      - "Override to_representation for custom output"
+      - "Validate data in validate methods"
+      - "Handle nested relationships properly"
+
+  migrations:
+    file_patterns: ["**/migrations/*.py"]
+    content_patterns: ["class Migration", "dependencies = \\[", "operations = \\["]
+    purpose: "Database schema evolution"
+    conventions:
+      - "Review migrations before applying"
+      - "Use data migrations for complex changes"
+      - "Test migrations on staging first"
+      - "Keep migrations small and focused"
+
+  apps:
+    file_patterns: ["apps.py", "**/apps/**/*.py"]
+    class_patterns: ["class.*\\(AppConfig\\)"]
+    purpose: "Application configuration"
+    conventions:
+      - "Define app configuration in apps.py"
+      - "Use ready() method for initialization"
+      - "Set appropriate app labels"
+
+  management:
+    file_patterns: ["**/management/commands/*.py"]
+    class_patterns: ["class.*\\(BaseCommand\\)"]
+    purpose: "Custom management commands"
+    conventions:
+      - "Inherit from BaseCommand"
+      - "Implement handle method"
+      - "Add help text and arguments"
+      - "Handle errors gracefully"
+
+  middleware:
+    file_patterns: ["middleware.py", "**/middleware/**/*.py"]
+    content_patterns: ["def __call__", "def process_request", "def process_response"]
+    purpose: "Request/response processing"
+    conventions:
+      - "Follow middleware method signatures"
+      - "Handle exceptions appropriately"
+      - "Consider performance impact"
+      - "Document middleware behavior"
+
+  templates:
+    file_patterns: ["**/templates/**/*.html", "*.html"]
+    content_patterns: ["{% extends", "{% include", "{% block", "{{ .*? }}"]
+    purpose: "HTML template rendering"
+    conventions:
+      - "Use template inheritance"
+      - "Escape user input automatically"
+      - "Use template tags and filters"
+      - "Keep logic in views, not templates"
+
+  static:
+    file_patterns: ["**/static/**/*", "staticfiles.json"]
+    purpose: "Static assets (CSS, JS, images)"
+    conventions:
+      - "Organize by app or type"
+      - "Use collectstatic for production"
+      - "Optimize images and assets"
+      - "Use CDN for production"
+
+# Architectural patterns
+patterns:
+  mvc:
+    description: "Model-View-Controller pattern in Django"
+    components: ["models", "views", "templates"]
+    detection:
+      - "models.py exists"
+      - "views.py exists"
+      - "templates/ directory exists"
+
+  rest_api:
+    description: "RESTful API using Django REST Framework"
+    components: ["serializers", "views", "urls"]
+    detection:
+      - "from rest_framework import"
+      - "serializers.py exists"
+      - "APIView or ViewSet usage"
+
+  admin_interface:
+    description: "Django admin interface"
+    components: ["admin", "models"]
+    detection:
+      - "admin.py exists"
+      - "admin.site.register usage"
+
+  multi_app:
+    description: "Multi-application Django project"
+    detection:
+      - "Multiple app directories"
+      - "INSTALLED_APPS with multiple custom apps"
+
+# Best practices and conventions
+best_practices:
+  project_structure:
+    - "Organize code into logical apps"
+    - "Keep apps focused and cohesive"
+    - "Use meaningful app and file names"
+    - "Separate settings by environment"
+
+  models:
+    - "Use appropriate field types"
+    - "Add database indexes for queries"
+    - "Use select_related and prefetch_related"
+    - "Implement proper string representations"
+
+  views:
+    - "Keep views thin, models fat"
+    - "Use generic views when appropriate"
+    - "Handle form validation properly"
+    - "Return appropriate HTTP status codes"
+
+  templates:
+    - "Use template inheritance"
+    - "Avoid complex logic in templates"
+    - "Use template tags for reusable code"
+    - "Escape user input for security"
+
+  security:
+    - "Use CSRF protection"
+    - "Validate and sanitize input"
+    - "Use HTTPS in production"
+    - "Keep SECRET_KEY secret"
+    - "Use proper authentication"
+
+  performance:
+    - "Use database query optimization"
+    - "Implement caching strategies"
+    - "Optimize static file serving"
+    - "Use database connection pooling"
+
+  testing:
+    - "Write unit tests for models"
+    - "Test views with Django TestCase"
+    - "Use fixtures for test data"
+    - "Test forms and validation"
+
+# Common anti-patterns to detect
+anti_patterns:
+  - pattern: "Model.*objects\\.all\\(\\)"
+    description: "Using .all() without filtering can be expensive"
+    severity: "warning"
+    suggestion: "Consider using .filter() or pagination"
+
+  - pattern: "for.*in.*\\.all\\(\\):"
+    description: "N+1 query problem in loops"
+    severity: "error"
+    suggestion: "Use select_related() or prefetch_related()"
+
+  - pattern: "HttpResponse\\(.*render"
+    description: "Manual template rendering"
+    severity: "info"
+    suggestion: "Use render() shortcut instead"
+
+  - pattern: "request\\.GET\\[.*\\]"
+    description: "Direct access to GET parameters without checking"
+    severity: "warning" 
+    suggestion: "Use request.GET.get() with default value"
+
+  - pattern: "User\\.objects\\.get\\("
+    description: "Using get() without exception handling"
+    severity: "warning"
+    suggestion: "Use get_object_or_404() or handle DoesNotExist"
+
+# Testing patterns
+testing:
+  file_patterns: ["test*.py", "**/tests/**/*.py", "**/test/**/*.py"]
+  class_patterns: ["class.*\\(TestCase\\)", "class.*\\(APITestCase\\)"]
+  function_patterns: ["def test_.*"]
+  fixtures: ["fixtures/**/*.json", "fixtures/**/*.yaml"]
+
+# Django REST Framework specific
+rest_framework:
+  file_patterns: ["**/api/**/*.py", "serializers.py"]
+  content_patterns:
+    - "from rest_framework"
+    - "APIView"
+    - "ViewSet"
+    - "ModelViewSet"
+    - "serializers.ModelSerializer"
+    - "@api_view"
+    - "Response("
+    - "status.HTTP_"
+
+  components:
+    viewsets:
+      class_patterns: ["class.*\\(.*ViewSet\\)"]
+      purpose: "API endpoint handling"
+    
+    serializers:
+      class_patterns: ["class.*\\(.*Serializer\\)"]
+      purpose: "Data serialization/deserialization"
+    
+    permissions:
+      class_patterns: ["class.*\\(.*Permission\\)"]
+      purpose: "Access control"
+
+# Common third-party packages
+common_packages:
+  - name: "django-extensions"
+    detection: ["from django_extensions"]
+    purpose: "Development utilities"
+  
+  - name: "celery"
+    detection: ["from celery", "@task", "@shared_task"]
+    purpose: "Asynchronous task processing"
+  
+  - name: "django-crispy-forms"
+    detection: ["crispy_forms", "{% load crispy_forms_tags %}"]
+    purpose: "Form rendering"
+  
+  - name: "django-allauth"
+    detection: ["from allauth"]
+    purpose: "Authentication and authorization"
+  
+  - name: "django-cors-headers"
+    detection: ["corsheaders"]
+    purpose: "CORS handling"
+  
+  - name: "django-filter"
+    detection: ["from django_filters"]
+    purpose: "Filtering support"
+
+# Performance optimization patterns
+performance_patterns:
+  database:
+    - "Use select_related() for forward relationships"
+    - "Use prefetch_related() for reverse relationships"
+    - "Add database indexes for frequent queries"
+    - "Use only() and defer() to limit fields"
+    - "Use exists() instead of counting"
+  
+  caching:
+    - "Cache expensive computations"
+    - "Use template fragment caching"
+    - "Implement view-level caching"
+    - "Cache database query results"
+  
+  static_files:
+    - "Use collectstatic for production"
+    - "Enable gzip compression"
+    - "Use CDN for static assets"
+    - "Optimize images and CSS"
+
+# Security best practices
+security_patterns:
+  authentication:
+    - "Use Django's built-in authentication"
+    - "Implement proper session management"
+    - "Use strong password requirements"
+    - "Enable two-factor authentication"
+  
+  authorization:
+    - "Use Django's permission system"
+    - "Implement object-level permissions"
+    - "Use groups for role-based access"
+    - "Check permissions in views"
+  
+  data_protection:
+    - "Use CSRF protection"
+    - "Validate and sanitize input"
+    - "Use HTTPS in production"
+    - "Protect sensitive data"
+
+# Deployment considerations
+deployment:
+  settings:
+    - "Separate settings by environment"
+    - "Use environment variables for secrets"
+    - "Enable debug only in development"
+    - "Configure allowed hosts properly"
+  
+  database:
+    - "Use production database in production"
+    - "Set up database backups"
+    - "Use connection pooling"
+    - "Monitor database performance"
+  
+  static_files:
+    - "Use collectstatic command"
+    - "Serve static files with web server"
+    - "Use CDN for better performance"
+    - "Enable compression"
+
+confidence_thresholds:
+  file_pattern_match: 0.9
+  content_pattern_match: 0.8
+  import_pattern_match: 0.9
+  class_pattern_match: 0.85
+  overall_framework_detection: 0.7

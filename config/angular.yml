@@ -1,0 +1,468 @@
+name: Angular
+version: "2+"
+description: "TypeScript-based web application framework (Angular 2+)"
+language: typescript
+type: frontend_framework
+
+# File patterns that indicate Angular 2+ usage
+file_patterns:
+  - "angular.json"
+  - "angular-cli.json"
+  - ".angular-cli.json"
+  - "ng-packagr.json"
+  - "tsconfig.json"
+  - "tsconfig.app.json"
+  - "tsconfig.spec.json"
+  - "karma.conf.js"
+  - "protractor.conf.js"
+  - "*.component.ts"
+  - "*.service.ts"
+  - "*.module.ts"
+  - "*.directive.ts"
+  - "*.pipe.ts"
+  - "*.guard.ts"
+  - "*.resolver.ts"
+  - "*.interceptor.ts"
+  - "main.ts"
+  - "polyfills.ts"
+  - "environment*.ts"
+
+# Content patterns for detection
+content_patterns:
+  imports:
+    - "from '@angular/"
+    - "import { Component }"
+    - "import { NgModule }"
+    - "import { Injectable }"
+    - "import { Directive }"
+    - "import { Pipe }"
+    - "import { Router }"
+    - "import { HttpClient }"
+    - "import { Observable }"
+    - "import { BehaviorSubject }"
+
+  decorators:
+    - "@Component\\("
+    - "@NgModule\\("
+    - "@Injectable\\("
+    - "@Directive\\("
+    - "@Pipe\\("
+    - "@Input\\("
+    - "@Output\\("
+    - "@ViewChild\\("
+    - "@ViewChildren\\("
+    - "@HostListener\\("
+    - "@HostBinding\\("
+
+  lifecycle_hooks:
+    - "ngOnInit"
+    - "ngOnDestroy"
+    - "ngOnChanges"
+    - "ngAfterViewInit"
+    - "ngAfterContentInit"
+    - "ngDoCheck"
+    - "OnInit"
+    - "OnDestroy"
+    - "AfterViewInit"
+
+  rxjs_patterns:
+    - "Observable<"
+    - "Subject<"
+    - "BehaviorSubject<"
+    - "\\.subscribe\\("
+    - "\\.pipe\\("
+    - "\\.map\\("
+    - "\\.filter\\("
+    - "\\.switchMap\\("
+    - "\\.mergeMap\\("
+
+# Framework-specific components
+components:
+  components:
+    file_patterns: ["*.component.ts", "*.component.js"]
+    template_patterns: ["*.component.html"]
+    style_patterns: ["*.component.css", "*.component.scss", "*.component.sass", "*.component.less"]
+    purpose: "Reusable UI components with encapsulated logic"
+    conventions:
+      - "Use PascalCase for component class names"
+      - "Use kebab-case for component selectors"
+      - "Implement lifecycle hooks as needed"
+      - "Keep components focused and single-purpose"
+      - "Use OnPush change detection when possible"
+
+  services:
+    file_patterns: ["*.service.ts"]
+    content_patterns: ["@Injectable("]
+    purpose: "Business logic and data access layer"
+    conventions:
+      - "Use dependency injection"
+      - "Return Observables for async operations"
+      - "Keep services stateless when possible"
+      - "Use proper error handling"
+      - "Implement singleton pattern with providedIn: 'root'"
+
+  modules:
+    file_patterns: ["*.module.ts"]
+    content_patterns: ["@NgModule("]
+    purpose: "Feature organization and dependency management"
+    conventions:
+      - "Organize by feature modules"
+      - "Use SharedModule for common components"
+      - "Implement lazy loading for feature modules"
+      - "Keep AppModule minimal"
+      - "Use forRoot() pattern for services"
+
+  directives:
+    file_patterns: ["*.directive.ts"]
+    content_patterns: ["@Directive("]
+    purpose: "DOM manipulation and behavior extension"
+    conventions:
+      - "Use attribute directives for behavior"
+      - "Use structural directives for DOM structure"
+      - "Implement proper cleanup in ngOnDestroy"
+      - "Use Renderer2 for DOM manipulation"
+
+  pipes:
+    file_patterns: ["*.pipe.ts"]
+    content_patterns: ["@Pipe("]
+    purpose: "Data transformation in templates"
+    conventions:
+      - "Keep pipes pure for performance"
+      - "Use for display formatting only"
+      - "Avoid complex logic in pipes"
+      - "Implement PipeTransform interface"
+
+  guards:
+    file_patterns: ["*.guard.ts"]
+    content_patterns: ["CanActivate", "CanDeactivate", "CanLoad", "Resolve"]
+    purpose: "Route protection and data resolution"
+    conventions:
+      - "Implement appropriate guard interfaces"
+      - "Return Observable<boolean> or Promise<boolean>"
+      - "Handle authentication and authorization"
+      - "Provide user feedback for denied access"
+
+  interceptors:
+    file_patterns: ["*.interceptor.ts"]
+    content_patterns: ["HttpInterceptor", "intercept"]
+    purpose: "HTTP request/response processing"
+    conventions:
+      - "Implement HttpInterceptor interface"
+      - "Handle errors gracefully"
+      - "Add authentication tokens"
+      - "Log requests for debugging"
+
+  models:
+    file_patterns: ["*.model.ts", "*.interface.ts", "*.types.ts"]
+    purpose: "Type definitions and data models"
+    conventions:
+      - "Use interfaces for data contracts"
+      - "Use classes for business logic"
+      - "Export types from index files"
+      - "Use readonly for immutable properties"
+
+# Architectural patterns
+patterns:
+  component_based:
+    description: "Component-based architecture"
+    components: ["components", "services", "modules"]
+    detection:
+      - "@Component decorators"
+      - "Component classes"
+      - "Template and style files"
+
+  reactive_programming:
+    description: "Reactive programming with RxJS"
+    detection:
+      - "Observable usage"
+      - "Subject usage"
+      - "Reactive operators"
+      - "Async pipe in templates"
+
+  dependency_injection:
+    description: "Hierarchical dependency injection"
+    detection:
+      - "@Injectable decorators"
+      - "Constructor injection"
+      - "Provider configuration"
+
+  lazy_loading:
+    description: "Lazy-loaded feature modules"
+    detection:
+      - "loadChildren in routes"
+      - "Dynamic imports"
+      - "Feature modules"
+
+# Angular CLI patterns
+cli_patterns:
+  project_structure:
+    - "src/app/ directory structure"
+    - "src/assets/ for static assets"
+    - "src/environments/ for configuration"
+    - "Angular workspace configuration"
+
+  build_configuration:
+    - "angular.json configuration"
+    - "Multiple build targets"
+    - "Environment-specific builds"
+    - "Custom webpack configuration"
+
+# Version-specific features
+version_features:
+  "2.x":
+    - "Component-based architecture introduction"
+    - "TypeScript as primary language"
+    - "Mobile-first approach"
+    - "Hierarchical dependency injection"
+
+  "4.x":
+    - "Angular Universal for SSR"
+    - "Angular CLI improvements"
+    - "Smaller bundle sizes"
+    - "Animation improvements"
+
+  "5.x":
+    - "Angular CLI Workspaces"
+    - "Build optimizer"
+    - "Angular Forms improvements"
+    - "HttpInterceptor"
+
+  "6.x":
+    - "ng update and ng add"
+    - "Angular Elements"
+    - "Tree-shakable providers"
+    - "Library support improvements"
+
+  "7.x":
+    - "CLI Prompts"
+    - "Virtual Scrolling"
+    - "Bundle budgets"
+    - "Angular DevKit"
+
+  "8.x":
+    - "Dynamic imports for lazy routes"
+    - "Web Workers support"
+    - "Differential loading"
+    - "Ivy renderer (experimental)"
+
+  "9.x":
+    - "Ivy renderer (default)"
+    - "Component harnesses for testing"
+    - "Improved tree-shaking"
+    - "Smaller bundle sizes"
+
+  "10.x":
+    - "Date range picker"
+    - "New default browser configuration"
+    - "New Angular Material design"
+    - "Warnings for CommonJS imports"
+
+  "11.x":
+    - "Automatic font inlining"
+    - "Component test harnesses"
+    - "Updated Hot Module Replacement"
+    - "Angular CLI strict mode"
+
+  "12.x":
+    - "Ivy everywhere"
+    - "Sass support for inline styles"
+    - "Strict mode by default"
+    - "Angular Language Service improvements"
+
+  "13.x":
+    - "Angular Package Format improvements"
+    - "Dynamic component creation simplified"
+    - "Persistent build cache"
+    - "Node.js 16 support"
+
+  "14.x":
+    - "Standalone components"
+    - "Angular CLI auto-completion"
+    - "Optional injectors in Embedded Views"
+    - "Angular DevKit improvements"
+
+  "15.x":
+    - "Standalone APIs stable"
+    - "Directive composition API"
+    - "Image optimization directive"
+    - "MDC-based Angular Material"
+
+  "16.x":
+    - "Signals (developer preview)"
+    - "Required inputs"
+    - "Router data as input"
+    - "Non-destructive hydration"
+
+  "17.x":
+    - "New application builder"
+    - "New lifecycle hooks"
+    - "View Transitions API"
+    - "SSR improvements"
+
+  "18.x":
+    - "Material 3 support"
+    - "Control flow syntax"
+    - "Built-in form validation"
+    - "Angular DevTools improvements"
+
+# Best practices
+best_practices:
+  component_design:
+    - "Use OnPush change detection strategy"
+    - "Keep components small and focused"
+    - "Use smart/dumb component pattern"
+    - "Implement proper lifecycle management"
+    - "Use reactive forms over template-driven forms"
+
+  performance:
+    - "Use lazy loading for feature modules"
+    - "Implement virtual scrolling for large lists"
+    - "Use OnPush change detection"
+    - "Optimize bundle size with tree-shaking"
+    - "Use trackBy functions in *ngFor"
+
+  architecture:
+    - "Follow single responsibility principle"
+    - "Use feature modules for organization"
+    - "Implement proper error handling"
+    - "Use reactive programming patterns"
+    - "Keep business logic in services"
+
+  security:
+    - "Sanitize user input"
+    - "Use HTTPS in production"
+    - "Implement proper authentication"
+    - "Avoid direct DOM manipulation"
+    - "Use Angular's built-in security features"
+
+  testing:
+    - "Write unit tests for components and services"
+    - "Use TestBed for component testing"
+    - "Mock dependencies in tests"
+    - "Use Angular testing utilities"
+    - "Write e2e tests for critical paths"
+
+# Common anti-patterns
+anti_patterns:
+  - pattern: "document\\."
+    description: "Direct DOM manipulation"
+    severity: "error"
+    suggestion: "Use Renderer2 or ViewChild/ElementRef"
+
+  - pattern: "\\$\\("
+    description: "jQuery usage in Angular"
+    severity: "warning"
+    suggestion: "Use Angular's built-in DOM abstraction"
+
+  - pattern: "setTimeout\\("
+    description: "Using native setTimeout"
+    severity: "info"
+    suggestion: "Consider using RxJS timer or delay operators"
+
+  - pattern: "any\\[\\]"
+    description: "Using 'any' type"
+    severity: "warning"
+    suggestion: "Use proper TypeScript types"
+
+  - pattern: "\\.subscribe\\(.*\\)\\s*$"
+    description: "Subscription without unsubscribe"
+    severity: "error"
+    suggestion: "Unsubscribe in ngOnDestroy or use async pipe"
+
+# Testing patterns
+testing:
+  unit_tests:
+    file_patterns: ["*.spec.ts"]
+    frameworks: ["jasmine", "karma", "jest"]
+    patterns:
+      - "describe("
+      - "it("
+      - "beforeEach("
+      - "TestBed.configureTestingModule"
+      - "fixture.detectChanges()"
+
+  e2e_tests:
+    file_patterns: ["*.e2e-spec.ts", "*.po.ts"]
+    frameworks: ["protractor", "cypress", "playwright"]
+    patterns:
+      - "browser.get("
+      - "element("
+      - "expect("
+
+# Common third-party libraries
+common_libraries:
+  - name: "@angular/material"
+    detection: ["@angular/material", "MatModule"]
+    purpose: "Material Design components"
+
+  - name: "@angular/cdk"
+    detection: ["@angular/cdk"]
+    purpose: "Component development kit"
+
+  - name: "@ngrx/store"
+    detection: ["@ngrx/store", "createAction", "createReducer"]
+    purpose: "State management"
+
+  - name: "rxjs"
+    detection: ["rxjs", "Observable", "Subject"]
+    purpose: "Reactive programming"
+
+  - name: "@angular/forms"
+    detection: ["ReactiveFormsModule", "FormBuilder", "FormGroup"]
+    purpose: "Form handling"
+
+  - name: "@angular/router"
+    detection: ["RouterModule", "Router", "ActivatedRoute"]
+    purpose: "Client-side routing"
+
+  - name: "@angular/common/http"
+    detection: ["HttpClientModule", "HttpClient"]
+    purpose: "HTTP client"
+
+  - name: "ng-bootstrap"
+    detection: ["@ng-bootstrap/ng-bootstrap"]
+    purpose: "Bootstrap components for Angular"
+
+  - name: "primeng"
+    detection: ["primeng"]
+    purpose: "Rich UI components"
+
+  - name: "angular-flex-layout"
+    detection: ["@angular/flex-layout"]
+    purpose: "Responsive layout"
+
+# Build and deployment
+build_tools:
+  angular_cli:
+    commands: ["ng build", "ng serve", "ng test", "ng e2e", "ng lint"]
+    configuration: "angular.json"
+
+  webpack:
+    description: "Underlying build system"
+    customization: "webpack.config.js or angular.json"
+
+  typescript:
+    configuration: "tsconfig.json"
+    compilation: "TypeScript to JavaScript"
+
+# State management patterns
+state_management:
+  component_state:
+    description: "Local component state"
+    patterns: ["private properties", "BehaviorSubject"]
+
+  service_state:
+    description: "Shared service state"
+    patterns: ["Injectable services", "BehaviorSubject"]
+
+  ngrx_store:
+    description: "Centralized state management"
+    patterns: ["@ngrx/store", "Actions", "Reducers", "Effects"]
+
+# Confidence thresholds for detection
+confidence_thresholds:
+  file_pattern_match: 0.9
+  content_pattern_match: 0.85
+  decorator_pattern_match: 0.95
+  typescript_usage: 0.9
+  overall_framework_detection: 0.8

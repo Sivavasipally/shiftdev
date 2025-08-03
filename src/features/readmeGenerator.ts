@@ -99,7 +99,7 @@ Requirements for the README:
 4. Explain the project structure
 5. Add API documentation if applicable
 6. Include contributing guidelines
-7. Add appropriate badges if you can infer the tech stack
+7. Add appropriate badges if you can infer the tech stack 
 8. Make it professional and comprehensive
 9. Use proper markdown formatting
 

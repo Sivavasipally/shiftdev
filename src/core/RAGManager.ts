@@ -3,12 +3,15 @@ import { CodeParser } from './CodeParser';
 import { LLMProvider } from '../chat/LLMProvider';
 import { CodeChunk, UserProfile } from '../types';
 import { Configuration } from '../utils/configuration';
+import { BM25 } from '../utils/bm25';
 import * as vscode from 'vscode';
 
 export class RAGManager {
   private vectorDB: VectorDB;
   private codeParser: CodeParser;
   private llmProvider: LLMProvider;
+  private bm25: BM25;
+  private documentCorpus: string[] = [];
 
   constructor(
     workspaceUri: vscode.Uri,
@@ -17,6 +20,7 @@ export class RAGManager {
     this.vectorDB = new VectorDB(workspaceUri);
     this.codeParser = new CodeParser();
     this.llmProvider = new LLMProvider(userProfile);
+    this.bm25 = new BM25();
   }
 
   updateUserProfile(profile: UserProfile): void {
@@ -51,6 +55,11 @@ export class RAGManager {
           return;
         }
 
+        // Build BM25 corpus from chunks
+        progress.report({ increment: 25, message: "Building BM25 index..." });
+        this.documentCorpus = chunks.map(chunk => chunk.content);
+        this.bm25.addDocuments(this.documentCorpus);
+        
         // Generate embeddings in batches
         progress.report({ increment: 30, message: "Generating embeddings..." });
         const enrichedChunks = await this.generateEmbeddingsWithProgress(chunks, progress);
@@ -87,7 +96,7 @@ export class RAGManager {
       
       // Generate query embeddings
       const queryEmbedding = await this.llmProvider.generateEmbedding(enhancedQuery.dense);
-      const sparseVector = this.generateSparseVector(enhancedQuery.sparse);
+      const sparseVector = this.bm25.generateSparseVector(enhancedQuery.sparse);
 
       // Retrieve relevant chunks
       const retrievedChunks = await this.vectorDB.hybridSearch(
@@ -114,11 +123,92 @@ export class RAGManager {
     }
   }
 
+  async getAllJavaChunks(): Promise<CodeChunk[]> {
+    try {
+      // Get all class chunks
+      const classChunks = await this.vectorDB.searchByChunkType('class', 1000);
+      
+      // Get all function chunks  
+      const functionChunks = await this.vectorDB.searchByChunkType('function', 1000);
+      
+      // Get all file chunks for Java files
+      const fileChunks = await this.vectorDB.searchByChunkType('file', 1000);
+      const javaFileChunks = fileChunks.filter(chunk => 
+        chunk.filePath.endsWith('.java') || 
+        chunk.metadata.language === 'java'
+      );
+      
+      // Combine all chunks and remove duplicates
+      const allChunks = [...classChunks, ...functionChunks, ...javaFileChunks];
+      const uniqueChunks = allChunks.filter((chunk, index, self) => 
+        index === self.findIndex(c => c.id === chunk.id)
+      );
+      
+      console.log(`Found ${uniqueChunks.length} Java-related chunks:`, {
+        classes: classChunks.length,
+        functions: functionChunks.length,
+        javaFiles: javaFileChunks.length
+      });
+      
+      return uniqueChunks;
+    } catch (error) {
+      console.error('Failed to get Java chunks:', error);
+      return [];
+    }
+  }
+
+  async getFrameworkChunks(framework: string): Promise<CodeChunk[]> {
+    try {
+      // Get all chunks for a specific framework
+      const allChunks = await this.vectorDB.searchByChunkType('file', 1000);
+      const classChunks = await this.vectorDB.searchByChunkType('class', 1000);
+      const functionChunks = await this.vectorDB.searchByChunkType('function', 1000);
+      
+      const combinedChunks = [...allChunks, ...classChunks, ...functionChunks];
+      
+      const frameworkChunks = combinedChunks.filter(chunk => 
+        chunk.metadata.framework === framework.toLowerCase() ||
+        chunk.metadata.isFrameworkSummary
+      );
+      
+      // Remove duplicates
+      const uniqueChunks = frameworkChunks.filter((chunk, index, self) => 
+        index === self.findIndex(c => c.id === chunk.id)
+      );
+      
+      console.log(`Found ${uniqueChunks.length} ${framework} framework chunks`);
+      
+      return uniqueChunks;
+    } catch (error) {
+      console.error(`Failed to get ${framework} chunks:`, error);
+      return [];
+    }
+  }
+
+  async getDetectedFrameworks(): Promise<any[]> {
+    try {
+      const allChunks = await this.vectorDB.searchByChunkType('file', 1000);
+      const frameworkChunks = allChunks.filter(chunk => chunk.metadata.isFrameworkSummary);
+      
+      return frameworkChunks.map(chunk => ({
+        name: chunk.metadata.framework,
+        version: chunk.metadata.frameworkVersion,
+        type: chunk.metadata.frameworkType,
+        language: chunk.metadata.language
+      }));
+    } catch (error) {
+      console.error('Failed to get detected frameworks:', error);
+      return [];
+    }
+  }
+
   async getCodebaseStats(): Promise<{
     totalChunks: number;
     fileCount: number;
     classCount: number;
     functionCount: number;
+    bm25VocabularySize?: number;
+    bm25DocumentCount?: number;
   }> {
     try {
       const totalChunks = await this.vectorDB.getChunkCount();
@@ -130,7 +220,9 @@ export class RAGManager {
         totalChunks,
         fileCount: fileChunks.length,
         classCount: classChunks.length,
-        functionCount: functionChunks.length
+        functionCount: functionChunks.length,
+        bm25VocabularySize: this.bm25.getVocabularySize(),
+        bm25DocumentCount: this.bm25.getDocumentCount()
       };
     } catch (error) {
       console.error('Failed to get stats:', error);
@@ -162,7 +254,7 @@ export class RAGManager {
       const embeddingPromises = batch.map(async (chunk) => {
         try {
           const embedding = await this.llmProvider.generateEmbedding(chunk.content);
-          const sparseVector = this.generateSparseVector(chunk.content);
+          const sparseVector = this.bm25.generateSparseVector(chunk.content);
           
           return {
             ...chunk,
@@ -225,26 +317,6 @@ SPARSE: [key terms separated by spaces]
     }
   }
 
-  private generateSparseVector(text: string): Record<string, number> {
-    // Simplified BM25-like sparse vector generation
-    const words = text.toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(word => word.length > 2);
-
-    const termFreq: Record<string, number> = {};
-    words.forEach(word => {
-      termFreq[word] = (termFreq[word] || 0) + 1;
-    });
-
-    // Apply TF-IDF-like weighting (simplified)
-    const sparseVector: Record<string, number> = {};
-    for (const [term, freq] of Object.entries(termFreq)) {
-      sparseVector[term] = Math.log(1 + freq) * 2; // Simplified IDF
-    }
-
-    return sparseVector;
-  }
 
   private buildContext(chunks: CodeChunk[]): string {
     let context = "# Relevant Code Context\n\n";
@@ -296,6 +368,8 @@ Guidelines:
 
   async clearIndex(): Promise<void> {
     await this.vectorDB.clearAll();
+    this.documentCorpus = [];
+    this.bm25 = new BM25(); // Reset BM25 index
     vscode.window.showInformationMessage('Index cleared successfully');
   }
 

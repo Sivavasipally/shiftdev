@@ -27,6 +27,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+    // Load and send existing chat history to webview
+    this.loadChatHistory();
+
     // Handle messages from webview
     webviewView.webview.onDidReceiveMessage(
       async message => {
@@ -82,6 +85,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         type: 'error', 
         message: 'Failed to clear chat history' 
       });
+    }
+  }
+
+  private async loadChatHistory() {
+    try {
+      const history = await this.chatController.getChatHistory();
+      this.sendMessage({
+        type: 'loadHistory',
+        history: history
+      });
+    } catch (error) {
+      console.error('Load chat history error:', error);
     }
   }
 
@@ -155,9 +170,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' 'unsafe-eval'; font-src ${webview.cspSource};">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'nonce-${nonce}' 'unsafe-eval' https://cdn.jsdelivr.net; font-src ${webview.cspSource};">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="${styleMainUri}" rel="stylesheet">
+        <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
         <title>DevCanvas AI</title>
       </head>
       <body>

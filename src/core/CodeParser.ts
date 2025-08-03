@@ -3,12 +3,19 @@ import * as path from 'path';
 import { CodeChunk } from '../types';
 import { FileUtils } from '../utils/fileUtils';
 import { Configuration } from '../utils/configuration';
+import { FrameworkDetector, FrameworkInfo } from '../utils/frameworkDetector';
 
 export class CodeParser {
-  private readonly supportedExtensions = ['.ts', '.js', '.py', '.java', '.cpp', '.c', '.go', '.rs', '.php', '.rb'];
+  private readonly supportedExtensions = ['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cpp', '.c', '.go', '.rs', '.php', '.rb', '.vue', '.svelte'];
+  private detectedFrameworks: FrameworkInfo[] = [];
 
   async parseRepository(rootPath: string): Promise<CodeChunk[]> {
     const chunks: CodeChunk[] = [];
+    
+    // First, detect frameworks in the repository
+    this.detectedFrameworks = await FrameworkDetector.detectFrameworks(rootPath);
+    console.log('Detected frameworks:', this.detectedFrameworks.map(f => `${f.name} ${f.version || ''}`));
+    
     const files = await this.discoverFiles(rootPath);
     const chunkSize = Configuration.getChunkSize();
 
@@ -21,6 +28,10 @@ export class CodeParser {
         console.warn(`Failed to parse ${filePath}:`, error);
       }
     }
+
+    // Add framework-specific metadata chunks
+    const frameworkChunks = this.createFrameworkChunks(rootPath);
+    chunks.push(...frameworkChunks);
 
     return chunks;
   }
@@ -163,26 +174,38 @@ export class CodeParser {
     // - tree-sitter for multi-language support
     // - python-ast for Python
     
-    if (extension === '.ts' || extension === '.js') {
-      chunks.push(...this.parseTypeScript(filePath, content, lines, maxChunkSize));
+    if (extension === '.ts' || extension === '.js' || extension === '.tsx' || extension === '.jsx') {
+      chunks.push(...this.parseTypeScriptJavaScript(filePath, content, lines, maxChunkSize));
     } else if (extension === '.py') {
       chunks.push(...this.parsePython(filePath, content, lines, maxChunkSize));
     } else if (extension === '.java') {
       chunks.push(...this.parseJava(filePath, content, lines, maxChunkSize));
+    } else if (extension === '.vue') {
+      chunks.push(...this.parseVue(filePath, content, lines, maxChunkSize));
+    } else if (extension === '.svelte') {
+      chunks.push(...this.parseSvelte(filePath, content, lines, maxChunkSize));
     }
 
     return chunks;
   }
 
-  private parseTypeScript(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
+  private parseTypeScriptJavaScript(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
     const chunks: CodeChunk[] = [];
     
-    // Simple regex-based parsing for demo - use proper AST in production
+    // Enhanced parsing with framework-specific patterns
     const classRegex = /class\s+(\w+)/g;
     const functionRegex = /(?:function\s+(\w+)|(\w+)\s*[=:]\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>))/g;
     const interfaceRegex = /interface\s+(\w+)/g;
+    const componentRegex = /@Component\s*\(\s*\{|function\s+(\w+)\s*\(.*\)\s*\{|const\s+(\w+)\s*=\s*\(/g;
+    const hookRegex = /const\s+\[(\w+),\s*set\w+\]\s*=\s*useState|useEffect\s*\(|use\w+\s*\(/g;
 
     let match;
+    
+    // Detect framework context
+    const isReact = this.isReactFile(content);
+    const isAngular = this.isAngularFile(content);
+    const isVue = this.isVueFile(content);
+    const isNode = this.isNodeFile(content);
 
     // Parse classes
     classRegex.lastIndex = 0;
@@ -204,7 +227,8 @@ export class CodeParser {
           metadata: {
             language: 'typescript',
             className,
-            complexity: this.calculateComplexity(classContent)
+            complexity: this.calculateComplexity(classContent),
+            framework: isReact ? 'react' : isAngular ? 'angular' : isVue ? 'vue' : isNode ? 'node' : undefined
           },
           denseVector: [],
           sparseVector: {}
@@ -234,7 +258,8 @@ export class CodeParser {
           metadata: {
             language: 'typescript',
             functionName,
-            complexity: this.calculateComplexity(functionContent)
+            complexity: this.calculateComplexity(functionContent),
+            framework: isReact ? 'react' : isAngular ? 'angular' : isVue ? 'vue' : isNode ? 'node' : undefined
           },
           denseVector: [],
           sparseVector: {}
@@ -262,7 +287,9 @@ export class CodeParser {
           metadata: {
             language: 'typescript',
             className: interfaceName,
-            complexity: 1
+            complexity: 1,
+            isInterface: true,
+            framework: isReact ? 'react' : isAngular ? 'angular' : isVue ? 'vue' : isNode ? 'node' : undefined
           },
           denseVector: [],
           sparseVector: {}
@@ -276,10 +303,19 @@ export class CodeParser {
   private parsePython(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
     const chunks: CodeChunk[] = [];
     
+    // Enhanced Python parsing with framework-specific patterns
     const classRegex = /class\s+(\w+)/g;
     const functionRegex = /def\s+(\w+)/g;
+    const decoratorRegex = /@(\w+\.?\w*)\s*(?:\([^)]*\))?\s*\n\s*def\s+(\w+)/g;
+    const flaskRouteRegex = /@app\.route\s*\(\s*['"]([^'"]+)['"]/g;
+    const fastApiRouteRegex = /@app\.(get|post|put|delete|patch)\s*\(\s*['"]([^'"]+)['"]/g;
 
     let match;
+    
+    // Detect framework context
+    const isFlask = this.isFlaskFile(content);
+    const isFastAPI = this.isFastAPIFile(content);
+    const isDjango = this.isDjangoFile(content);
 
     // Parse classes
     classRegex.lastIndex = 0;
@@ -301,7 +337,8 @@ export class CodeParser {
           metadata: {
             language: 'python',
             className,
-            complexity: this.calculateComplexity(classContent)
+            complexity: this.calculateComplexity(classContent),
+            framework: isFlask ? 'flask' : isFastAPI ? 'fastapi' : isDjango ? 'django' : undefined
           },
           denseVector: [],
           sparseVector: {}
@@ -329,7 +366,8 @@ export class CodeParser {
           metadata: {
             language: 'python',
             functionName,
-            complexity: this.calculateComplexity(functionContent)
+            complexity: this.calculateComplexity(functionContent),
+            framework: isFlask ? 'flask' : isFastAPI ? 'fastapi' : isDjango ? 'django' : undefined
           },
           denseVector: [],
           sparseVector: {}
@@ -343,8 +381,12 @@ export class CodeParser {
   private parseJava(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
     const chunks: CodeChunk[] = [];
     
-    const classRegex = /(?:public\s+|private\s+|protected\s+)?class\s+(\w+)/g;
-    const methodRegex = /(?:public\s+|private\s+|protected\s+)?(?:static\s+)?(?:\w+\s+)*(\w+)\s*\([^)]*\)\s*\{/g;
+    // Enhanced Java parsing patterns
+    const classRegex = /(?:@\w+\s+)*(?:public\s+|private\s+|protected\s+)?(?:final\s+|abstract\s+)?class\s+(\w+)/g;
+    const interfaceRegex = /(?:@\w+\s+)*(?:public\s+|private\s+|protected\s+)?interface\s+(\w+)/g;
+    const enumRegex = /(?:@\w+\s+)*(?:public\s+|private\s+|protected\s+)?enum\s+(\w+)/g;
+    const annotationRegex = /(?:@\w+\s+)*(?:public\s+)?@interface\s+(\w+)/g;
+    const methodRegex = /(?:@\w+\s+)*(?:public\s+|private\s+|protected\s+)?(?:static\s+)?(?:final\s+)?(?:\w+(?:<[^>]+>)?\s+)+(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w\s,]+)?\s*\{/g;
 
     let match;
 
@@ -369,6 +411,121 @@ export class CodeParser {
             language: 'java',
             className,
             complexity: this.calculateComplexity(classContent)
+          },
+          denseVector: [],
+          sparseVector: {}
+        });
+      }
+    }
+
+    // Parse interfaces
+    interfaceRegex.lastIndex = 0;
+    while ((match = interfaceRegex.exec(content)) !== null) {
+      const interfaceName = match[1];
+      const startPos = match.index;
+      const lineNumber = content.substring(0, startPos).split('\n').length;
+      
+      const interfaceContent = this.extractBlock(content, startPos, '{', '}');
+      
+      if (interfaceContent.length <= maxChunkSize) {
+        chunks.push({
+          id: `interface_${this.generateId(filePath + interfaceName)}`,
+          content: interfaceContent,
+          filePath,
+          startLine: lineNumber,
+          endLine: lineNumber + interfaceContent.split('\n').length - 1,
+          chunkType: 'class', // Treat interface as class type for search
+          metadata: {
+            language: 'java',
+            className: interfaceName,
+            isInterface: true,
+            complexity: 1
+          },
+          denseVector: [],
+          sparseVector: {}
+        });
+      }
+    }
+
+    // Parse enums
+    enumRegex.lastIndex = 0;
+    while ((match = enumRegex.exec(content)) !== null) {
+      const enumName = match[1];
+      const startPos = match.index;
+      const lineNumber = content.substring(0, startPos).split('\n').length;
+      
+      const enumContent = this.extractBlock(content, startPos, '{', '}');
+      
+      if (enumContent.length <= maxChunkSize) {
+        chunks.push({
+          id: `enum_${this.generateId(filePath + enumName)}`,
+          content: enumContent,
+          filePath,
+          startLine: lineNumber,
+          endLine: lineNumber + enumContent.split('\n').length - 1,
+          chunkType: 'class', // Treat enum as class type for search
+          metadata: {
+            language: 'java',
+            className: enumName,
+            isEnum: true,
+            complexity: 1
+          },
+          denseVector: [],
+          sparseVector: {}
+        });
+      }
+    }
+
+    // Parse annotation interfaces
+    annotationRegex.lastIndex = 0;
+    while ((match = annotationRegex.exec(content)) !== null) {
+      const annotationName = match[1];
+      const startPos = match.index;
+      const lineNumber = content.substring(0, startPos).split('\n').length;
+      
+      const annotationContent = this.extractBlock(content, startPos, '{', '}');
+      
+      if (annotationContent.length <= maxChunkSize) {
+        chunks.push({
+          id: `annotation_${this.generateId(filePath + annotationName)}`,
+          content: annotationContent,
+          filePath,
+          startLine: lineNumber,
+          endLine: lineNumber + annotationContent.split('\n').length - 1,
+          chunkType: 'class', // Treat annotation as class type for search
+          metadata: {
+            language: 'java',
+            className: annotationName,
+            isAnnotation: true,
+            complexity: 1
+          },
+          denseVector: [],
+          sparseVector: {}
+        });
+      }
+    }
+
+    // Parse methods
+    methodRegex.lastIndex = 0;
+    while ((match = methodRegex.exec(content)) !== null) {
+      const methodName = match[1];
+      const startPos = match.index;
+      const lineNumber = content.substring(0, startPos).split('\n').length;
+      
+      const methodContent = this.extractBlock(content, startPos, '{', '}');
+      
+      if (methodContent.length <= maxChunkSize) {
+        chunks.push({
+          id: `method_${this.generateId(filePath + methodName)}`,
+          content: methodContent,
+          filePath,
+          startLine: lineNumber,
+          endLine: lineNumber + methodContent.split('\n').length - 1,
+          chunkType: 'function',
+          metadata: {
+            language: 'java',
+            functionName: methodName,
+            complexity: this.calculateComplexity(methodContent)
           },
           denseVector: [],
           sparseVector: {}
@@ -503,5 +660,289 @@ export class CodeParser {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16);
+  }
+
+  // Framework detection methods
+  private isReactFile(content: string): boolean {
+    return content.includes('from react') || 
+           content.includes('import React') || 
+           content.includes('useState') || 
+           content.includes('useEffect') ||
+           content.includes('JSX.Element') ||
+           content.includes('React.Component');
+  }
+
+  private isAngularFile(content: string): boolean {
+    return content.includes('@Component') || 
+           content.includes('@Injectable') || 
+           content.includes('@NgModule') ||
+           content.includes('from @angular');
+  }
+
+  private isVueFile(content: string): boolean {
+    return content.includes('from vue') || 
+           content.includes('Vue.') || 
+           content.includes('createApp') ||
+           content.includes('defineComponent');
+  }
+
+  private isNodeFile(content: string): boolean {
+    return content.includes('require(') || 
+           content.includes('module.exports') || 
+           content.includes('process.env') ||
+           content.includes('__dirname') ||
+           content.includes('express') ||
+           content.includes('fastify');
+  }
+
+  private isFlaskFile(content: string): boolean {
+    return content.includes('from flask') || 
+           content.includes('import flask') || 
+           content.includes('@app.route') ||
+           content.includes('Flask(__name__)');
+  }
+
+  private isFastAPIFile(content: string): boolean {
+    return content.includes('from fastapi') || 
+           content.includes('import fastapi') || 
+           content.includes('FastAPI()') ||
+           content.includes('@app.get') ||
+           content.includes('@app.post');
+  }
+
+  private isDjangoFile(content: string): boolean {
+    return content.includes('from django') || 
+           content.includes('import django') || 
+           content.includes('models.Model') ||
+           content.includes('views.View') ||
+           content.includes('HttpResponse');
+  }
+
+  // Framework-specific parsing methods
+  private parseVue(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
+    const chunks: CodeChunk[] = [];
+    
+    // Parse Vue SFC (Single File Component)
+    const templateMatch = content.match(/<template[^>]*>([\s\S]*?)<\/template>/);
+    const scriptMatch = content.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+    const styleMatch = content.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+    
+    if (templateMatch) {
+      chunks.push({
+        id: `vue_template_${this.generateId(filePath)}`,
+        content: templateMatch[1],
+        filePath,
+        startLine: this.getLineNumber(content, templateMatch.index!),
+        endLine: this.getLineNumber(content, templateMatch.index! + templateMatch[0].length),
+        chunkType: 'block',
+        metadata: {
+          language: 'vue-template',
+          componentType: 'template',
+          framework: 'vue'
+        },
+        denseVector: [],
+        sparseVector: {}
+      });
+    }
+    
+    if (scriptMatch) {
+      chunks.push({
+        id: `vue_script_${this.generateId(filePath)}`,
+        content: scriptMatch[1],
+        filePath,
+        startLine: this.getLineNumber(content, scriptMatch.index!),
+        endLine: this.getLineNumber(content, scriptMatch.index! + scriptMatch[0].length),
+        chunkType: 'block',
+        metadata: {
+          language: 'javascript',
+          componentType: 'script',
+          framework: 'vue'
+        },
+        denseVector: [],
+        sparseVector: {}
+      });
+    }
+    
+    return chunks;
+  }
+
+  private parseSvelte(filePath: string, content: string, lines: string[], maxChunkSize: number): CodeChunk[] {
+    const chunks: CodeChunk[] = [];
+    
+    // Parse Svelte component
+    const scriptMatch = content.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+    const styleMatch = content.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+    
+    // The rest is the template
+    let templateContent = content;
+    if (scriptMatch) {
+      templateContent = templateContent.replace(scriptMatch[0], '');
+    }
+    if (styleMatch) {
+      templateContent = templateContent.replace(styleMatch[0], '');
+    }
+    
+    if (scriptMatch) {
+      chunks.push({
+        id: `svelte_script_${this.generateId(filePath)}`,
+        content: scriptMatch[1],
+        filePath,
+        startLine: this.getLineNumber(content, scriptMatch.index!),
+        endLine: this.getLineNumber(content, scriptMatch.index! + scriptMatch[0].length),
+        chunkType: 'block',
+        metadata: {
+          language: 'javascript',
+          componentType: 'script',
+          framework: 'svelte'
+        },
+        denseVector: [],
+        sparseVector: {}
+      });
+    }
+    
+    return chunks;
+  }
+
+  private createFrameworkChunks(rootPath: string): CodeChunk[] {
+    const chunks: CodeChunk[] = [];
+    
+    for (const framework of this.detectedFrameworks) {
+      const frameworkSummary = this.createFrameworkSummary(framework, rootPath);
+      
+      chunks.push({
+        id: `framework_${this.generateId(framework.name)}`,
+        content: frameworkSummary,
+        filePath: rootPath,
+        startLine: 1,
+        endLine: 1,
+        chunkType: 'file',
+        metadata: {
+          language: framework.language,
+          framework: framework.name.toLowerCase(),
+          frameworkVersion: framework.version,
+          frameworkType: framework.type,
+          isFrameworkSummary: true
+        },
+        denseVector: [],
+        sparseVector: {}
+      });
+    }
+    
+    return chunks;
+  }
+
+  private createFrameworkSummary(framework: FrameworkInfo, rootPath: string): string {
+    let summary = `# ${framework.name} Framework Analysis\n\n`;
+    summary += `**Version:** ${framework.version || 'Unknown'}\n`;
+    summary += `**Type:** ${framework.type}\n`;
+    summary += `**Language:** ${framework.language}\n\n`;
+    
+    if (framework.dependencies && framework.dependencies.length > 0) {
+      summary += `**Dependencies:**\n`;
+      framework.dependencies.slice(0, 10).forEach(dep => {
+        summary += `- ${dep}\n`;
+      });
+      if (framework.dependencies.length > 10) {
+        summary += `- ... and ${framework.dependencies.length - 10} more\n`;
+      }
+      summary += `\n`;
+    }
+    
+    if (framework.patterns && framework.patterns.length > 0) {
+      summary += `**Key Patterns & Annotations:**\n`;
+      framework.patterns.forEach(pattern => {
+        summary += `- ${pattern}\n`;
+      });
+      summary += `\n`;
+    }
+    
+    if (framework.configFiles && framework.configFiles.length > 0) {
+      summary += `**Configuration Files:**\n`;
+      framework.configFiles.forEach(file => {
+        summary += `- ${file}\n`;
+      });
+      summary += `\n`;
+    }
+    
+    // Add framework-specific architecture patterns
+    summary += this.getFrameworkArchitecturePatterns(framework.name);
+    
+    return summary;
+  }
+
+  private getFrameworkArchitecturePatterns(frameworkName: string): string {
+    const patterns: Record<string, string> = {
+      'Spring Boot': `
+**Architecture Patterns:**
+- MVC (Model-View-Controller) pattern
+- Dependency Injection with @Autowired
+- RESTful API design with @RestController
+- Service layer pattern with @Service
+- Repository pattern with @Repository
+- Configuration management with @Configuration
+- Auto-configuration and starter dependencies
+- Embedded server (Tomcat, Jetty, Undertow)
+- Spring Security for authentication/authorization
+- Spring Data for database access
+      `,
+      'React': `
+**Architecture Patterns:**
+- Component-based architecture
+- Unidirectional data flow
+- Virtual DOM rendering
+- Hooks for state management (useState, useEffect)
+- Context API for global state
+- Higher-Order Components (HOCs)
+- Render props pattern
+- Custom hooks for reusable logic
+- JSX for templating
+- Props for component communication
+      `,
+      'Angular': `
+**Architecture Patterns:**
+- Component-based architecture
+- Dependency Injection
+- Services for business logic
+- Modules for feature organization
+- Directives for DOM manipulation
+- Pipes for data transformation
+- Observables for async operations
+- TypeScript for type safety
+- CLI for project scaffolding
+- Guards for route protection
+      `,
+      'Flask': `
+**Architecture Patterns:**
+- WSGI application
+- Blueprints for modular design
+- Jinja2 templating
+- Request-response cycle
+- Application context
+- Decorators for routing
+- Middleware support
+- Extension system
+- Configuration management
+- SQLAlchemy integration
+      `,
+      'FastAPI': `
+**Architecture Patterns:**
+- ASGI application
+- Type hints and Pydantic validation
+- Automatic API documentation
+- Dependency injection system
+- Async/await support
+- OpenAPI schema generation
+- OAuth2 and JWT authentication
+- Background tasks
+- WebSocket support
+- High performance with Starlette
+      `
+    };
+    
+    return patterns[frameworkName] || '';
+  }
+
+  private getLineNumber(content: string, position: number): number {
+    return content.substring(0, position).split('\n').length;
   }
 }

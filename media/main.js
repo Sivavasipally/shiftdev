@@ -15,7 +15,8 @@
     
     function initialize() {
         setupEventListeners();
-        restoreState();
+        // Don't restore state here - wait for backend to send history
+        // restoreState();
         focusInput();
     }
     
@@ -78,9 +79,11 @@
     
     function clearChat() {
         if (confirm('Are you sure you want to clear the chat history?')) {
+            console.log('Clearing chat - before clear:', messagesContainer.children.length);
             messagesContainer.innerHTML = '';
+            console.log('Clearing chat - after clear:', messagesContainer.children.length);
             vscode.postMessage({ type: 'clearChat' });
-            saveState();
+            console.log('Clear message sent to extension');
         }
     }
     
@@ -98,7 +101,14 @@
                 handleError(message.message);
                 break;
             case 'clearComplete':
+                console.log('Received clearComplete from extension');
+                console.log('Messages before clearComplete:', messagesContainer.children.length);
                 messagesContainer.innerHTML = '';
+                console.log('Messages after clearComplete:', messagesContainer.children.length);
+                console.log('Chat cleared successfully');
+                break;
+            case 'loadHistory':
+                handleLoadHistory(message.history);
                 break;
         }
     }
@@ -145,6 +155,21 @@
         focusInput();
     }
     
+    function handleLoadHistory(history) {
+        console.log('Loading chat history:', history.length, 'messages');
+        messagesContainer.innerHTML = '';
+        
+        if (history && history.length > 0) {
+            history.forEach(msg => {
+                addMessage(msg.role, msg.content, msg.metadata);
+            });
+        }
+        
+        // Don't save state here - we're loading from backend
+        scrollToBottom();
+        focusInput();
+    }
+    
     function addMessage(role, content, metadata) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
@@ -155,6 +180,11 @@
         if (role === 'assistant') {
             // Render markdown content
             contentDiv.innerHTML = parseMarkdown(content);
+            
+            // Handle diagrams with Mermaid
+            if (metadata && metadata.isDiagram) {
+                setupDiagramInteractivity(contentDiv, metadata);
+            }
             
             // Add metadata if available
             if (metadata) {
@@ -213,9 +243,12 @@
         // Simple markdown parser - in production, use a proper library like marked.js
         let html = text;
         
-        // Code blocks
+        // Code blocks (special handling for Mermaid)
         html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
             const language = lang || '';
+            if (language === 'mermaid') {
+                return `<div class="mermaid-diagram" data-diagram="${escapeHtml(code.trim())}">${escapeHtml(code.trim())}</div>`;
+            }
             return `<pre><code class="language-${language}">${escapeHtml(code.trim())}</code></pre>`;
         });
         
@@ -302,30 +335,109 @@
     
     function saveState() {
         const state = {
-            inputValue: messageInput.value,
-            messages: Array.from(messagesContainer.children).map(msg => ({
-                className: msg.className,
-                innerHTML: msg.innerHTML
-            }))
+            inputValue: messageInput.value
+            // Don't save messages - they're managed by backend storage
         };
+        console.log('Saving state - input only');
         vscode.setState(state);
     }
     
     function restoreState() {
         const state = vscode.getState();
+        console.log('Restoring state:', state);
         if (state) {
             messageInput.value = state.inputValue || '';
+            // Messages are loaded from backend, not webview state
+        } else {
+            console.log('No state to restore');
+        }
+    }
+    
+    function setupDiagramInteractivity(contentDiv, metadata) {
+        // Find mermaid diagrams in the content
+        const mermaidDivs = contentDiv.querySelectorAll('.mermaid-diagram');
+        
+        mermaidDivs.forEach(div => {
+            // Replace the text content with rendered Mermaid
+            const diagramCode = div.dataset.diagram;
             
-            if (state.messages) {
-                messagesContainer.innerHTML = '';
-                state.messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = msg.className;
-                    div.innerHTML = msg.innerHTML;
-                    messagesContainer.appendChild(div);
-                });
-                scrollToBottom();
+            // Create a container for the rendered diagram
+            const diagramContainer = document.createElement('div');
+            diagramContainer.className = 'diagram-container';
+            diagramContainer.innerHTML = `<div class="mermaid">${diagramCode}</div>`;
+            
+            // Replace the original div
+            div.parentNode.replaceChild(diagramContainer, div);
+            
+            // Set up click handling for navigation
+            if (metadata.navigationData) {
+                setupDiagramNavigation(diagramContainer, metadata.navigationData);
             }
+        });
+        
+        // Initialize Mermaid if available
+        if (typeof mermaid !== 'undefined') {
+            mermaid.initialize({ 
+                startOnLoad: true,
+                theme: 'default',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true
+                }
+            });
+            mermaid.init(undefined, contentDiv.querySelectorAll('.mermaid'));
+        }
+    }
+    
+    function setupDiagramNavigation(diagramContainer, navigationData) {
+        // Handle clicks on diagram elements that have navigation data
+        diagramContainer.addEventListener('click', (event) => {
+            const target = event.target;
+            
+            // Look for navigation hints in element attributes or text
+            const elementText = target.textContent || target.getAttribute('data-id');
+            
+            // Check if we have navigation data for this element
+            if (elementText && navigationData[elementText]) {
+                const navData = navigationData[elementText];
+                vscode.postMessage({
+                    type: 'navigateToCode',
+                    filePath: navData.filePath,
+                    lineNumber: navData.lineNumber
+                });
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
+        
+        // Look for Mermaid click events and handle them
+        if (typeof mermaid !== 'undefined') {
+            // Custom click handler for Mermaid diagrams
+            mermaid.mermaidAPI.setConfig({
+                securityLevel: 'loose', // Allow click events
+                startOnLoad: true
+            });
+            
+            // Override Mermaid's click handling
+            const originalClick = window.mermaidClick;
+            window.mermaidClick = function(nodeId) {
+                // Extract the navigation identifier from the nodeId
+                const navKey = nodeId.replace(/^navigate:/, '');
+                
+                if (navigationData[navKey]) {
+                    const navData = navigationData[navKey];
+                    vscode.postMessage({
+                        type: 'navigateToCode',
+                        filePath: navData.filePath,
+                        lineNumber: navData.lineNumber
+                    });
+                }
+                
+                // Call original handler if it exists
+                if (originalClick) {
+                    originalClick(nodeId);
+                }
+            };
         }
     }
 })();

@@ -1,0 +1,630 @@
+frameworks:
+  # Backend Frameworks
+  - framework: "Spring Boot"
+    key: "spring-boot"
+    type: "backend"
+    language: "java"
+    signature_files: ["pom.xml", "build.gradle", "build.gradle.kts", "src/main/resources/application.properties", "src/main/resources/application.yml"]
+    primary_indicators: ["spring-boot-starter", "@SpringBootApplication", "org.springframework.boot"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Controller"
+        patterns: ["*Controller.java", "*RestController.java", "*/*Controller.java"]
+        decorators: ["@RestController", "@Controller", "@RequestMapping"]
+        content_patterns: ["@GetMapping", "@PostMapping", "@PutMapping", "@DeleteMapping", "@PatchMapping", "@RequestParam", "@PathVariable", "@RequestBody", "@CrossOrigin"]
+      - type: "Service"
+        patterns: ["*Service.java", "*ServiceImpl.java", "*/*Service.java"]
+        decorators: ["@Service", "@Component"]
+        content_patterns: ["@Autowired", "@Transactional", "@Async", "@Cacheable", "@Validated"]
+      - type: "Repository"
+        patterns: ["*Repository.java", "*RepositoryImpl.java", "*Dao.java", "*/*Repository.java"]
+        decorators: ["@Repository", "@Component"]
+        content_patterns: ["@Query", "@Modifying", "JpaRepository", "CrudRepository", "PagingAndSortingRepository", "MongoRepository"]
+      - type: "Entity"
+        patterns: ["*Entity.java", "*Model.java", "*/*Entity.java", "entity/*.java", "model/*.java"]
+        decorators: ["@Entity", "@Table", "@Document"]
+        content_patterns: ["@Id", "@GeneratedValue", "@Column", "@OneToMany", "@ManyToOne", "@ManyToMany", "@OneToOne", "@JoinColumn", "@JsonIgnore"]
+      - type: "Configuration"
+        patterns: ["*Config.java", "*Configuration.java", "application.properties", "application.yml", "application-*.yml", "application-*.properties"]
+        decorators: ["@Configuration", "@ConfigurationProperties", "@EnableAutoConfiguration"]
+        content_patterns: ["@Bean", "@Value", "@Profile", "@ConditionalOnProperty", "@EnableJpaRepositories", "@EnableWebSecurity"]
+      - type: "Security"
+        patterns: ["*SecurityConfig.java", "*Security*.java", "security/*.java"]
+        decorators: ["@EnableWebSecurity", "@EnableGlobalMethodSecurity"]
+        content_patterns: ["WebSecurityConfigurerAdapter", "SecurityFilterChain", "@PreAuthorize", "@Secured"]
+      - type: "Test"
+        patterns: ["*Test.java", "*IT.java", "*Tests.java", "src/test/**/*.java"]
+        decorators: ["@Test", "@SpringBootTest", "@TestMethodOrder"]
+        content_patterns: ["@MockBean", "@Autowired", "@TestConfiguration", "MockMvc", "TestRestTemplate", "@DataJpaTest", "@WebMvcTest"]
+      - type: "DTO"
+        patterns: ["*DTO.java", "*Dto.java", "*Request.java", "*Response.java", "dto/*.java"]
+        decorators: ["@Data", "@JsonProperty"]
+        content_patterns: ["@Valid", "@NotNull", "@NotEmpty", "@Size", "@Email", "javax.validation", "jakarta.validation"]
+    pattern_weights:
+      - category: "annotations"
+        multiplier: 1.5
+      - category: "configuration"
+        multiplier: 1.2
+      - category: "structure"
+        multiplier: 1.0
+      - category: "spring_security"
+        multiplier: 1.3
+      - category: "testing"
+        multiplier: 1.1
+
+  - framework: "Django"
+    key: "django"
+    type: "fullstack"
+    language: "python"
+    signature_files: ["manage.py", "requirements.txt", "pyproject.toml"]
+    primary_indicators: ["Django", "django"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Model"
+        patterns: ["models.py", "*_models.py"]
+        decorators: []
+        content_patterns: ["models.Model", "models.CharField", "models.ForeignKey"]
+      - type: "View"
+        patterns: ["views.py", "*_views.py"]
+        decorators: []
+        content_patterns: ["HttpResponse", "render", "redirect", "View"]
+      - type: "URL Configuration"
+        patterns: ["urls.py", "*_urls.py"]
+        decorators: []
+        content_patterns: ["urlpatterns", "path(", "include("]
+      - type: "Form"
+        patterns: ["forms.py", "*_forms.py"]
+        decorators: []
+        content_patterns: ["forms.Form", "forms.ModelForm"]
+      - type: "Admin"
+        patterns: ["admin.py", "*_admin.py"]
+        decorators: []
+        content_patterns: ["admin.ModelAdmin", "admin.site.register"]
+      - type: "Settings"
+        patterns: ["settings.py", "settings/*.py"]
+        decorators: []
+        content_patterns: ["DATABASES", "INSTALLED_APPS", "MIDDLEWARE"]
+    pattern_weights:
+      - category: "models"
+        multiplier: 1.4
+      - category: "views"
+        multiplier: 1.3
+      - category: "urls"
+        multiplier: 1.2
+
+  - framework: "Flask"
+    key: "flask"
+    type: "backend"
+    language: "python"
+    signature_files: ["requirements.txt", "app.py", "run.py"]
+    primary_indicators: ["Flask", "from flask import"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.65
+      definitive: 0.85
+    file_types:
+      - type: "Application"
+        patterns: ["app.py", "main.py", "run.py"]
+        decorators: []
+        content_patterns: ["Flask(__name__)", "@app.route"]
+      - type: "Blueprint"
+        patterns: ["*_blueprint.py", "blueprints/*.py"]
+        decorators: []
+        content_patterns: ["Blueprint(", "bp.route"]
+      - type: "Model"
+        patterns: ["models.py", "*_model.py"]
+        decorators: []
+        content_patterns: ["db.Model", "db.Column"]
+      - type: "Form"
+        patterns: ["forms.py", "*_forms.py"]
+        decorators: []
+        content_patterns: ["FlaskForm", "wtf."]
+      - type: "Configuration"
+        patterns: ["config.py", "settings.py"]
+        decorators: []
+        content_patterns: ["class Config", "SECRET_KEY"]
+    pattern_weights:
+      - category: "routes"
+        multiplier: 1.3
+      - category: "blueprints"
+        multiplier: 1.2
+      - category: "models"
+        multiplier: 1.1
+
+  - framework: "FastAPI"
+    key: "fastapi"
+    type: "backend"
+    language: "python"
+    signature_files: ["requirements.txt", "main.py", "pyproject.toml"]
+    primary_indicators: ["fastapi", "from fastapi import"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Application"
+        patterns: ["main.py", "app.py"]
+        decorators: []
+        content_patterns: ["FastAPI()", "app = FastAPI"]
+      - type: "Router"
+        patterns: ["*_router.py", "routers/*.py"]
+        decorators: []
+        content_patterns: ["APIRouter()", "@router.get", "@router.post"]
+      - type: "Model"
+        patterns: ["models.py", "*_models.py", "schemas.py", "*_schemas.py"]
+        decorators: []
+        content_patterns: ["BaseModel", "pydantic"]
+      - type: "Dependency"
+        patterns: ["dependencies.py", "*_deps.py"]
+        decorators: []
+        content_patterns: ["Depends(", "get_db"]
+      - type: "Configuration"
+        patterns: ["config.py", "settings.py"]
+        decorators: []
+        content_patterns: ["Settings", "BaseSettings"]
+    pattern_weights:
+      - category: "async"
+        multiplier: 1.2
+      - category: "type_hints"
+        multiplier: 1.3
+      - category: "pydantic"
+        multiplier: 1.4
+
+  # Frontend Frameworks
+  - framework: "React"
+    key: "react"
+    type: "frontend"
+    language: "javascript"
+    signature_files: ["package.json", "src/index.js", "src/index.tsx", "src/App.js", "src/App.tsx"]
+    primary_indicators: ["react", "import React", "from 'react'", "react-dom"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.85
+    file_types:
+      - type: "Component"
+        patterns: ["*.jsx", "*.tsx", "*Component.js", "*Component.ts", "components/*.js", "components/*.tsx"]
+        decorators: []
+        content_patterns: ["useState", "useEffect", "Component", "React.", "export default", "function", "const", "return (", "JSX.Element"]
+      - type: "Hook"
+        patterns: ["*Hook.js", "*Hook.ts", "use*.js", "use*.ts", "hooks/*.js", "hooks/*.ts"]
+        decorators: []
+        content_patterns: ["useState", "useEffect", "useContext", "useCallback", "useMemo", "useRef", "useReducer", "useImperativeHandle", "useLayoutEffect"]
+      - type: "Context"
+        patterns: ["*Context.js", "*Context.ts", "context/*.js", "context/*.ts"]
+        decorators: []
+        content_patterns: ["createContext", "useContext", "Provider", "Consumer"]
+      - type: "Redux"
+        patterns: ["*Slice.js", "*Slice.ts", "*Reducer.js", "*Action.js", "store/*.js", "store/*.ts", "redux/*.js"]
+        decorators: []
+        content_patterns: ["createSlice", "configureStore", "useSelector", "useDispatch", "createAction", "createReducer", "@reduxjs/toolkit"]
+      - type: "Router"
+        patterns: ["*Router.js", "*Router.ts", "*Routes.js", "*Routes.ts"]
+        decorators: []
+        content_patterns: ["BrowserRouter", "Routes", "Route", "Link", "Navigate", "useNavigate", "useParams", "useLocation"]
+      - type: "Form"
+        patterns: ["*Form.js", "*Form.ts", "forms/*.js", "forms/*.ts"]
+        decorators: []
+        content_patterns: ["useForm", "Controller", "react-hook-form", "Formik", "Yup", "validation"]
+      - type: "Style"
+        patterns: ["*.module.css", "*.module.scss", "*.styled.js", "*.styled.ts"]
+        decorators: []
+        content_patterns: ["styled-components", "makeStyles", "@emotion", "css`", "styled."]
+      - type: "Test"
+        patterns: ["*.test.js", "*.test.tsx", "*.spec.js", "*.spec.tsx", "__tests__/*.js", "__tests__/*.tsx"]
+        decorators: []
+        content_patterns: ["describe(", "it(", "test(", "expect(", "render(", "@testing-library", "jest", "screen."]
+      - type: "API"
+        patterns: ["*api.js", "*Api.js", "api/*.js", "services/*.js", "*service.js"]
+        decorators: []
+        content_patterns: ["fetch(", "axios", "useQuery", "useMutation", "react-query", "SWR"]
+    pattern_weights:
+      - category: "hooks"
+        multiplier: 1.4
+      - category: "jsx"
+        multiplier: 1.3
+      - category: "state_management"
+        multiplier: 1.2
+      - category: "typescript"
+        multiplier: 1.2
+      - category: "testing"
+        multiplier: 1.1
+
+  - framework: "Angular"
+    key: "angular"
+    type: "frontend"
+    language: "typescript"
+    signature_files: ["angular.json", "package.json"]
+    primary_indicators: ["@angular/core", "@Component"]
+    confidence_thresholds:
+      minimum: 0.4
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Component"
+        patterns: ["*.component.ts", "*.page.ts"]
+        decorators: ["@Component"]
+        content_patterns: ["OnInit", "OnDestroy", "ViewChild"]
+      - type: "Service"
+        patterns: ["*.service.ts"]
+        decorators: ["@Injectable"]
+        content_patterns: ["providedIn: 'root'", "HttpClient"]
+      - type: "Module"
+        patterns: ["*.module.ts"]
+        decorators: ["@NgModule"]
+        content_patterns: ["declarations", "imports", "providers"]
+      - type: "Directive"
+        patterns: ["*.directive.ts"]
+        decorators: ["@Directive"]
+        content_patterns: ["ElementRef", "Renderer2"]
+      - type: "Pipe"
+        patterns: ["*.pipe.ts"]
+        decorators: ["@Pipe"]
+        content_patterns: ["PipeTransform", "transform("]
+      - type: "Guard"
+        patterns: ["*.guard.ts"]
+        decorators: ["@Injectable"]
+        content_patterns: ["CanActivate", "CanDeactivate", "Router"]
+    pattern_weights:
+      - category: "decorators"
+        multiplier: 1.3
+      - category: "lifecycle"
+        multiplier: 1.2
+      - category: "dependency_injection"
+        multiplier: 1.4
+
+  - framework: "AngularJS"
+    key: "angularjs"
+    type: "frontend"
+    language: "javascript"
+    signature_files: ["package.json", "bower.json"]
+    primary_indicators: ["angular", "angular.module"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.6
+      definitive: 0.8
+    file_types:
+      - type: "Controller"
+        patterns: ["*.controller.js", "*Controller.js"]
+        decorators: []
+        content_patterns: ["angular.module", ".controller(", "$scope"]
+      - type: "Service"
+        patterns: ["*.service.js", "*Service.js"]
+        decorators: []
+        content_patterns: [".service(", ".factory(", "$http"]
+      - type: "Directive"
+        patterns: ["*.directive.js", "*Directive.js"]
+        decorators: []
+        content_patterns: [".directive(", "restrict:", "template:"]
+      - type: "Filter"
+        patterns: ["*.filter.js", "*Filter.js"]
+        decorators: []
+        content_patterns: [".filter("]
+    pattern_weights:
+      - category: "modules"
+        multiplier: 1.3
+      - category: "dependency_injection"
+        multiplier: 1.2
+
+  - framework: "Vue.js"
+    key: "vue"
+    type: "frontend"
+    language: "javascript"
+    signature_files: ["package.json", "vue.config.js", "vite.config.js", "vite.config.ts", "src/main.js", "src/main.ts"]
+    primary_indicators: ["vue", "createApp", "Vue", "@vue/cli"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.85
+    file_types:
+      - type: "Component"
+        patterns: ["*.vue", "*.js", "*.ts", "components/*.vue", "views/*.vue", "pages/*.vue"]
+        decorators: []
+        content_patterns: ["<template>", "<script>", "<style>", "defineComponent", "export default", "setup()", "script setup"]
+      - type: "Store"
+        patterns: ["store.js", "*store.js", "store/*.js", "store/*.ts", "stores/*.js", "stores/*.ts"]
+        decorators: []
+        content_patterns: ["createStore", "Vuex", "Pinia", "defineStore", "mutations", "actions", "getters", "state"]
+      - type: "Router"
+        patterns: ["router.js", "*router.js", "router/*.js", "router/*.ts", "router/index.js"]
+        decorators: []
+        content_patterns: ["createRouter", "createWebHistory", "createWebHashHistory", "Vue Router", "routes", "RouterView", "RouterLink"]
+      - type: "Composable"
+        patterns: ["use*.js", "use*.ts", "composables/*.js", "composables/*.ts"]
+        decorators: []
+        content_patterns: ["ref(", "reactive(", "computed(", "watch(", "watchEffect(", "onMounted", "onUnmounted", "defineExpose"]
+      - type: "Plugin"
+        patterns: ["plugins/*.js", "plugins/*.ts", "*plugin.js", "*plugin.ts"]
+        decorators: []
+        content_patterns: ["app.use(", "install(", "Vue.prototype", "globalProperties"]
+      - type: "Directive"
+        patterns: ["directives/*.js", "directives/*.ts", "*directive.js", "*directive.ts"]
+        decorators: []
+        content_patterns: ["app.directive", "Vue.directive", "mounted", "updated", "unmounted", "binding"]
+      - type: "Middleware"
+        patterns: ["middleware/*.js", "middleware/*.ts"]
+        decorators: []
+        content_patterns: ["beforeEach", "beforeResolve", "afterEach", "to", "from", "next"]
+      - type: "Test"
+        patterns: ["*.test.js", "*.test.ts", "*.spec.js", "*.spec.ts", "__tests__/*.js", "__tests__/*.ts"]
+        decorators: []
+        content_patterns: ["describe(", "it(", "test(", "expect(", "@vue/test-utils", "mount(", "shallowMount("]
+    pattern_weights:
+      - category: "sfc"
+        multiplier: 1.4
+      - category: "composition_api"
+        multiplier: 1.3
+      - category: "reactivity"
+        multiplier: 1.2
+      - category: "pinia"
+        multiplier: 1.3
+      - category: "vue3"
+        multiplier: 1.2
+
+  # Data Science/ML Frameworks
+  - framework: "Streamlit"
+    key: "streamlit"
+    type: "frontend"
+    language: "python"
+    signature_files: ["requirements.txt", "streamlit_app.py", ".streamlit/config.toml"]
+    primary_indicators: ["streamlit", "import streamlit as st"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "App"
+        patterns: ["streamlit_app.py", "app.py", "main.py"]
+        decorators: []
+        content_patterns: ["st.", "streamlit.", "st.title", "st.write"]
+      - type: "Page"
+        patterns: ["pages/*.py"]
+        decorators: []
+        content_patterns: ["st.", "streamlit."]
+      - type: "Component"
+        patterns: ["components/*.py", "*_component.py"]
+        decorators: []
+        content_patterns: ["st.beta_container", "st.columns"]
+      - type: "Utility"
+        patterns: ["utils/*.py", "*_utils.py", "helpers/*.py"]
+        decorators: []
+        content_patterns: ["@st.cache", "@st.experimental_memo"]
+    pattern_weights:
+      - category: "widgets"
+        multiplier: 1.3
+      - category: "layout"
+        multiplier: 1.2
+      - category: "caching"
+        multiplier: 1.4
+
+  # Full-Stack Frameworks
+  - framework: "Next.js"
+    key: "nextjs"
+    type: "fullstack"
+    language: "javascript"
+    signature_files: ["package.json", "next.config.js", "next.config.mjs", "next.config.ts"]
+    primary_indicators: ["next", "next/", "Next.js", "@next/"]
+    confidence_thresholds:
+      minimum: 0.4
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Page"
+        patterns: ["pages/*.js", "pages/*.tsx", "app/*.js", "app/*.tsx", "src/pages/*.js", "src/pages/*.tsx", "src/app/*.js", "src/app/*.tsx"]
+        decorators: []
+        content_patterns: ["getStaticProps", "getServerSideProps", "getStaticPaths", "export default", "generateStaticParams", "generateMetadata"]
+      - type: "API Route"
+        patterns: ["pages/api/*.js", "pages/api/*.ts", "app/api/*.js", "app/api/*.ts", "src/pages/api/*.js", "src/app/api/*.js"]
+        decorators: []
+        content_patterns: ["export default", "export async function GET", "export async function POST", "NextRequest", "NextResponse", "req", "res"]
+      - type: "Component"
+        patterns: ["components/*.js", "components/*.tsx", "src/components/*.js", "src/components/*.tsx"]
+        decorators: []
+        content_patterns: ["export default", "React", "useState", "useEffect", "JSX.Element", "FC<"]
+      - type: "Layout"
+        patterns: ["*layout.js", "*layout.tsx", "app/layout.js", "app/layout.tsx", "src/app/layout.tsx"]
+        decorators: []
+        content_patterns: ["children", "export default", "RootLayout", "metadata"]
+      - type: "Middleware"
+        patterns: ["middleware.js", "middleware.ts", "src/middleware.js", "src/middleware.ts"]
+        decorators: []
+        content_patterns: ["NextRequest", "NextResponse", "matcher", "export function middleware"]
+      - type: "Configuration"
+        patterns: ["next.config.js", "next.config.mjs", "next.config.ts", "tailwind.config.js", "postcss.config.js"]
+        decorators: []
+        content_patterns: ["nextConfig", "module.exports", "experimental", "images", "env"]
+      - type: "Hook"
+        patterns: ["hooks/*.js", "hooks/*.ts", "src/hooks/*.js", "src/hooks/*.ts", "lib/hooks/*.js"]
+        decorators: []
+        content_patterns: ["useRouter", "usePathname", "useSearchParams", "useState", "useEffect", "useSWR"]
+      - type: "Utility"
+        patterns: ["lib/*.js", "lib/*.ts", "utils/*.js", "utils/*.ts", "src/lib/*.js", "src/utils/*.js"]
+        decorators: []
+        content_patterns: ["export", "export default", "async function", "const"]
+      - type: "Style"
+        patterns: ["styles/*.css", "styles/*.scss", "*.module.css", "*.module.scss", "globals.css", "tailwind.css"]
+        decorators: []
+        content_patterns: ["@tailwind", ".module", "css-modules", "styled-jsx"]
+    pattern_weights:
+      - category: "ssr"
+        multiplier: 1.4
+      - category: "routing"
+        multiplier: 1.3
+      - category: "api_routes"
+        multiplier: 1.2
+      - category: "app_router"
+        multiplier: 1.4
+      - category: "server_components"
+        multiplier: 1.3
+
+  # Modern Backend Frameworks
+  - framework: "Node.js Express"
+    key: "express"
+    type: "backend"
+    language: "javascript"
+    signature_files: ["package.json", "app.js", "server.js", "index.js"]
+    primary_indicators: ["express", "require('express')", "import express"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.85
+    file_types:
+      - type: "Application"
+        patterns: ["app.js", "server.js", "index.js", "main.js"]
+        decorators: []
+        content_patterns: ["express()", "app.listen", "app.use", "app.get", "app.post"]
+      - type: "Route"
+        patterns: ["routes/*.js", "*Route.js", "*Routes.js"]
+        decorators: []
+        content_patterns: ["router.get", "router.post", "router.put", "router.delete", "express.Router()"]
+      - type: "Middleware"
+        patterns: ["middleware/*.js", "*Middleware.js"]
+        decorators: []
+        content_patterns: ["function(req, res, next)", "(req, res, next)", "next()"]
+      - type: "Controller"
+        patterns: ["controllers/*.js", "*Controller.js"]
+        decorators: []
+        content_patterns: ["req.params", "req.body", "req.query", "res.json", "res.status"]
+      - type: "Model"
+        patterns: ["models/*.js", "*Model.js"]
+        decorators: []
+        content_patterns: ["mongoose.Schema", "sequelize.define", "module.exports"]
+    pattern_weights:
+      - category: "routing"
+        multiplier: 1.3
+      - category: "middleware"
+        multiplier: 1.2
+      - category: "express_features"
+        multiplier: 1.4
+
+  - framework: "Svelte"
+    key: "svelte"
+    type: "frontend"
+    language: "javascript"
+    signature_files: ["package.json", "svelte.config.js", "vite.config.js"]
+    primary_indicators: ["svelte", "@sveltejs/kit", "svelte/store"]
+    confidence_thresholds:
+      minimum: 0.3
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Component"
+        patterns: ["*.svelte", "src/**/*.svelte", "components/*.svelte"]
+        decorators: []
+        content_patterns: ["<script>", "<style>", "<svelte:", "export let", "$:"]
+      - type: "Store"
+        patterns: ["*store.js", "*store.ts", "stores/*.js", "stores/*.ts"]
+        decorators: []
+        content_patterns: ["writable(", "readable(", "derived(", "get("]
+      - type: "Route"
+        patterns: ["src/routes/**/*.svelte", "routes/**/*.svelte"]
+        decorators: []
+        content_patterns: ["<script context=\"module\">", "export const load", "export const prerender"]
+      - type: "Layout"
+        patterns: ["*layout.svelte", "__layout.svelte"]
+        decorators: []
+        content_patterns: ["<slot>", "<script>"]
+    pattern_weights:
+      - category: "svelte_syntax"
+        multiplier: 1.5
+      - category: "sveltekit"
+        multiplier: 1.3
+      - category: "stores"
+        multiplier: 1.2
+
+  - framework: "Nuxt.js"
+    key: "nuxt"
+    type: "fullstack"
+    language: "javascript"
+    signature_files: ["package.json", "nuxt.config.js", "nuxt.config.ts"]
+    primary_indicators: ["nuxt", "@nuxt/", "nuxtjs"]
+    confidence_thresholds:
+      minimum: 0.4
+      strong: 0.7
+      definitive: 0.9
+    file_types:
+      - type: "Page"
+        patterns: ["pages/*.vue", "pages/**/*.vue"]
+        decorators: []
+        content_patterns: ["asyncData", "fetch", "head()", "definePageMeta"]
+      - type: "Layout"
+        patterns: ["layouts/*.vue", "app.vue"]
+        decorators: []
+        content_patterns: ["<NuxtPage>", "<Nuxt />"]
+      - type: "Plugin"
+        patterns: ["plugins/*.js", "plugins/*.ts"]
+        decorators: []
+        content_patterns: ["export default defineNuxtPlugin", "nuxtApp", "provide"]
+      - type: "Middleware"
+        patterns: ["middleware/*.js", "middleware/*.ts"]
+        decorators: []
+        content_patterns: ["export default defineNuxtRouteMiddleware", "navigateTo", "abortNavigation"]
+      - type: "Composable"
+        patterns: ["composables/*.js", "composables/*.ts"]
+        decorators: []
+        content_patterns: ["useFetch", "useAsyncData", "useState", "useCookie"]
+    pattern_weights:
+      - category: "nuxt3"
+        multiplier: 1.4
+      - category: "ssr"
+        multiplier: 1.3
+      - category: "auto_imports"
+        multiplier: 1.2
+
+# Global settings for framework detection
+global_settings:
+  max_frameworks_detected: 5
+  confidence_boost_for_config_files: 0.2
+  multi_framework_threshold: 0.6
+  ignore_patterns:
+    - "node_modules/**"
+    - ".git/**"
+    - "target/**"
+    - "build/**"
+    - "dist/**"
+    - "__pycache__/**"
+    - "*.pyc"
+    - ".DS_Store"
+  
+  # File extension mappings for quick classification
+  extension_mappings:
+    ".java": ["spring-boot", "spring"]
+    ".py": ["django", "flask", "fastapi", "streamlit"]
+    ".js": ["react", "vue", "angularjs", "nextjs", "express", "svelte", "nuxt"]
+    ".ts": ["angular", "react", "nextjs", "express", "svelte", "nuxt"]
+    ".jsx": ["react"]
+    ".tsx": ["react", "nextjs"]
+    ".vue": ["vue", "nuxt"]
+    ".svelte": ["svelte"]
+  
+  # Framework compatibility matrix
+  framework_compatibility:
+    - primary: "react"
+      compatible_with: ["nextjs", "express"]
+      conflicts_with: ["vue", "angular", "svelte"]
+    - primary: "vue"
+      compatible_with: ["nuxt", "express"]
+      conflicts_with: ["react", "angular", "svelte"]
+    - primary: "angular"
+      compatible_with: ["express"]
+      conflicts_with: ["react", "vue", "svelte", "nextjs"]
+    - primary: "django"
+      compatible_with: ["react", "vue", "angular"]
+      conflicts_with: ["flask", "fastapi"]
+    - primary: "express"
+      compatible_with: ["react", "vue", "angular", "svelte"]
+      conflicts_with: ["django", "flask", "fastapi", "spring-boot"]
+  
+  # Modern development patterns
+  modern_patterns:
+    typescript_usage_weight: 1.2
+    test_coverage_weight: 1.1
+    config_as_code_weight: 1.15
+    monorepo_detection: true
+    micro_frontend_detection: true

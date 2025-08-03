@@ -1,0 +1,305 @@
+name: AngularJS
+version: "1.x"
+description: "JavaScript MVW framework (legacy version)"
+language: javascript
+type: frontend_framework
+
+# File patterns that indicate AngularJS usage
+file_patterns:
+  - "angular.js"
+  - "angular.min.js"
+  - "app.js"
+  - "*.module.js"
+  - "*.controller.js"
+  - "*.service.js"
+  - "*.directive.js"
+  - "*.filter.js"
+  - "*.config.js"
+  - "*.route.js"
+
+# Content patterns for detection
+content_patterns:
+  imports:
+    - "angular.module"
+    - "var app = angular.module"
+    - "angular.bootstrap"
+    - "angular.element"
+    - "angular.injector"
+    - "angular.copy"
+    - "angular.extend"
+    - "angular.forEach"
+    - "angular.isUndefined"
+    - "angular.isDefined"
+
+  function_patterns:
+    - "angular\\.module\\("
+    - "\\.controller\\("
+    - "\\.service\\("
+    - "\\.factory\\("
+    - "\\.directive\\("
+    - "\\.filter\\("
+    - "\\.config\\("
+    - "\\.run\\("
+    - "\\$scope\\."
+    - "\\$rootScope\\."
+    - "\\$http\\."
+    - "\\$location\\."
+    - "\\$route\\."
+    - "\\$timeout\\."
+    - "\\$interval\\."
+
+  directives:
+    - "ng-app"
+    - "ng-controller"
+    - "ng-model"
+    - "ng-bind"
+    - "ng-repeat"
+    - "ng-if"
+    - "ng-show"
+    - "ng-hide"
+    - "ng-click"
+    - "ng-submit"
+    - "ng-form"
+
+  dependency_injection:
+    - "function\\s*\\([^)]*\\$scope"
+    - "function\\s*\\([^)]*\\$http"
+    - "function\\s*\\([^)]*\\$location"
+    - "function\\s*\\([^)]*\\$route"
+    - "function\\s*\\([^)]*\\$timeout"
+
+# Framework-specific components
+components:
+  modules:
+    file_patterns: ["*.module.js", "app.js"]
+    content_patterns: ["angular.module("]
+    purpose: "Application modules and module definitions"
+    conventions:
+      - "Use IIFE (Immediately Invoked Function Expression)"
+      - "Declare dependencies explicitly"
+      - "Use consistent naming conventions"
+      - "Separate module declaration and configuration"
+
+  controllers:
+    file_patterns: ["*.controller.js"]
+    content_patterns: [".controller("]
+    purpose: "Business logic and view coordination"
+    conventions:
+      - "Use controllerAs syntax"
+      - "Keep controllers thin"
+      - "Inject dependencies properly"
+      - "Use $scope sparingly"
+
+  services:
+    file_patterns: ["*.service.js"]
+    content_patterns: [".service(", ".factory(", ".provider("]
+    purpose: "Shared business logic and data access"
+    conventions:
+      - "Use services for shared logic"
+      - "Use factories for complex object creation"
+      - "Implement proper error handling"
+      - "Return promises for async operations"
+
+  directives:
+    file_patterns: ["*.directive.js"]
+    content_patterns: [".directive("]
+    purpose: "Custom HTML elements and DOM manipulation"
+    conventions:
+      - "Use restrict property appropriately"
+      - "Implement link function for DOM manipulation"
+      - "Use isolated scope when needed"
+      - "Follow directive naming conventions"
+
+  filters:
+    file_patterns: ["*.filter.js"]
+    content_patterns: [".filter("]
+    purpose: "Data transformation and formatting"
+    conventions:
+      - "Keep filters pure and stateless"
+      - "Use for display formatting only"
+      - "Avoid complex logic in filters"
+
+  templates:
+    file_patterns: ["*.html", "**/templates/**/*.html", "**/partials/**/*.html"]
+    content_patterns: ["ng-", "{{", "}}"]
+    purpose: "View templates with AngularJS directives"
+    conventions:
+      - "Use semantic HTML"
+      - "Keep templates simple"
+      - "Use directives appropriately"
+      - "Avoid complex expressions in templates"
+
+# Architectural patterns
+patterns:
+  mvc:
+    description: "Model-View-Controller pattern"
+    components: ["models", "views", "controllers"]
+    detection:
+      - "Controllers exist"
+      - "Templates with ng- directives"
+      - "Services for data models"
+
+  module_pattern:
+    description: "Modular application structure"
+    detection:
+      - "Multiple angular.module() declarations"
+      - "Module dependencies"
+      - "Feature-based file organization"
+
+  dependency_injection:
+    description: "Dependency injection pattern"
+    detection:
+      - "Function parameters match service names"
+      - "Array notation for minification safety"
+      - "$inject property usage"
+
+# AngularJS specific features
+angularjs_features:
+  two_way_binding:
+    description: "Two-way data binding with $scope"
+    patterns: ["ng-model", "$scope.$watch", "$scope.$apply"]
+
+  digest_cycle:
+    description: "Digest cycle and dirty checking"
+    patterns: ["$scope.$digest", "$scope.$apply", "$timeout"]
+
+  jqlite:
+    description: "Built-in jQuery lite functionality"
+    patterns: ["angular.element", "element.find", "element.bind"]
+
+  scope_hierarchy:
+    description: "Scope inheritance hierarchy"
+    patterns: ["$scope.$parent", "$scope.$root", "$scope.$new"]
+
+# Best practices for AngularJS
+best_practices:
+  performance:
+    - "Use one-time binding (::) for static data"
+    - "Limit watchers and deep watching"
+    - "Use track by in ng-repeat"
+    - "Avoid DOM manipulation in controllers"
+    - "Use $timeout instead of setTimeout"
+
+  structure:
+    - "Organize by feature, not by type"
+    - "Use consistent file naming"
+    - "Separate concerns properly"
+    - "Use IIFE to avoid global pollution"
+
+  dependency_injection:
+    - "Use array notation for minification safety"
+    - "Inject dependencies explicitly"
+    - "Use $inject property when needed"
+    - "Avoid circular dependencies"
+
+  testing:
+    - "Write unit tests for controllers and services"
+    - "Use Karma and Jasmine for testing"
+    - "Mock dependencies in tests"
+    - "Test directives with proper setup"
+
+# Common anti-patterns
+anti_patterns:
+  - pattern: "\\$scope\\.\\$parent"
+    description: "Direct access to parent scope"
+    severity: "warning"
+    suggestion: "Use events or services for communication"
+
+  - pattern: "document\\."
+    description: "Direct DOM manipulation"
+    severity: "error"
+    suggestion: "Use directives for DOM manipulation"
+
+  - pattern: "setTimeout\\("
+    description: "Using native setTimeout instead of $timeout"
+    severity: "warning"
+    suggestion: "Use $timeout service for proper digest cycle"
+
+  - pattern: "\\$scope\\.\\$apply\\("
+    description: "Manual digest cycle triggering"
+    severity: "info"
+    suggestion: "Consider using $timeout or check if already in digest"
+
+  - pattern: "ng-repeat.*track by \\$index"
+    description: "Tracking by index in ng-repeat"
+    severity: "warning"
+    suggestion: "Use unique identifier for better performance"
+
+# Testing patterns
+testing:
+  file_patterns: ["*.spec.js", "*.test.js", "**/test/**/*.js", "**/tests/**/*.js"]
+  frameworks: ["jasmine", "mocha", "karma"]
+  patterns:
+    - "describe("
+    - "it("
+    - "beforeEach("
+    - "inject("
+    - "module("
+
+# Common third-party libraries
+common_libraries:
+  - name: "ui-router"
+    detection: ["ui.router", "$stateProvider", "$state"]
+    purpose: "Advanced routing"
+
+  - name: "angular-animate"
+    detection: ["ngAnimate", "ng-animate"]
+    purpose: "Animation support"
+
+  - name: "angular-resource"
+    detection: ["ngResource", "$resource"]
+    purpose: "RESTful resource interaction"
+
+  - name: "angular-sanitize"
+    detection: ["ngSanitize", "$sanitize"]
+    purpose: "HTML sanitization"
+
+  - name: "ui-bootstrap"
+    detection: ["ui.bootstrap"]
+    purpose: "Bootstrap components"
+
+  - name: "angular-translate"
+    detection: ["pascalprecht.translate", "$translate"]
+    purpose: "Internationalization"
+
+# Migration indicators (suggests moving to Angular 2+)
+migration_indicators:
+  complexity:
+    - "Large number of controllers (>20)"
+    - "Deep scope inheritance"
+    - "Heavy DOM manipulation"
+    - "Performance issues with digest cycle"
+
+  modern_features_needed:
+    - "TypeScript support"
+    - "Component-based architecture"
+    - "Better mobile performance"
+    - "Modern build tools integration"
+
+# Version detection confidence
+confidence_thresholds:
+  file_pattern_match: 0.8
+  content_pattern_match: 0.9
+  directive_pattern_match: 0.95
+  overall_framework_detection: 0.75
+
+# Specific version indicators
+version_indicators:
+  "1.0.x":
+    - "angular.module without dependency array"
+    - "Lack of controllerAs syntax"
+  "1.2.x":
+    - "controllerAs syntax support"
+    - "One-time binding support"
+  "1.3.x":
+    - "ngModelOptions support"
+    - "Improved form validation"
+  "1.4.x":
+    - "ngMessages module"
+    - "Animation improvements"
+  "1.5.x":
+    - "Component helper"
+    - "$onInit lifecycle hook"
+  "1.6.x":
+    - "Component lifecycle hooks"
+    - "Multi-slot transclusion"

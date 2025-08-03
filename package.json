@@ -24,13 +24,36 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "devcanvas-ai",
+          "title": "DevCanvas AI",
+          "icon": "media/icons/devcanvas-ai.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "devcanvas-ai": [
         {
           "type": "webview",
           "id": "devcanvas-ai.chatView",
-          "name": "DevCanvas AI",
+          "name": "Chat",
           "when": "devcanvas-ai.enabled"
+        },
+        {
+          "id": "devcanvas-ai.quickActions",
+          "name": "Quick Actions",
+          "when": "devcanvas-ai.enabled"
+        }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "devcanvas-ai.chatViewExplorer",
+          "name": "DevCanvas AI",
+          "when": "devcanvas-ai.enabled",
+          "visibility": "collapsed"
         }
       ]
     },
@@ -62,6 +85,48 @@
         "command": "devcanvas-ai.generateDiagram",
         "title": "Generate Architecture Diagram",
         "category": "DevCanvas AI"
+      },
+      {
+        "command": "devcanvas-ai.cloneRepository",
+        "title": "Clone Repository",
+        "category": "DevCanvas AI",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "devcanvas-ai.showOnboarding",
+        "title": "Show Getting Started Guide",
+        "category": "DevCanvas AI",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "devcanvas-ai.showQuickStart",
+        "title": "Quick Start",
+        "category": "DevCanvas AI",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "devcanvas-ai.analyzeZip",
+        "title": "Analyze ZIP File",
+        "category": "DevCanvas AI",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "devcanvas-ai.analyzeFile",
+        "title": "Analyze Current File",
+        "category": "DevCanvas AI",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "devcanvas-ai.explainCode",
+        "title": "Explain Selected Code",
+        "category": "DevCanvas AI",
+        "icon": "$(question)"
+      },
+      {
+        "command": "devcanvas-ai.generateTests",
+        "title": "Generate Tests",
+        "category": "DevCanvas AI",
+        "icon": "$(beaker)"
       }
     ],
     "menus": {
@@ -69,10 +134,113 @@
         {
           "command": "devcanvas-ai.generateReadme",
           "when": "explorerResourceIsFolder",
-          "group": "DevCanvas AI"
+          "group": "1_devcanvas@1"
+        },
+        {
+          "command": "devcanvas-ai.generateDiagram",
+          "when": "explorerResourceIsFolder",
+          "group": "1_devcanvas@2"
+        },
+        {
+          "command": "devcanvas-ai.indexWorkspace",
+          "when": "explorerResourceIsFolder",
+          "group": "1_devcanvas@3"
+        },
+        {
+          "command": "devcanvas-ai.cloneRepository",
+          "when": "explorerResourceIsFolder",
+          "group": "1_devcanvas@4"
+        },
+        {
+          "command": "devcanvas-ai.analyzeZip",
+          "when": "explorerResourceIsFolder",
+          "group": "1_devcanvas@5"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "devcanvas-ai.analyzeFile",
+          "when": "editorHasSelection",
+          "group": "1_devcanvas@1"
+        },
+        {
+          "command": "devcanvas-ai.explainCode",
+          "when": "editorHasSelection",
+          "group": "1_devcanvas@2"
+        },
+        {
+          "command": "devcanvas-ai.generateTests",
+          "when": "editorHasSelection",
+          "group": "1_devcanvas@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "devcanvas-ai.analyzeFile",
+          "when": "resourceExtname =~ /\\.(js|ts|py|java|cpp|c|cs|go|rs|php|rb)$/",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "devcanvas-ai.indexWorkspace",
+          "when": "view == devcanvas-ai.chatView",
+          "group": "navigation"
+        },
+        {
+          "command": "devcanvas-ai.configure",
+          "when": "view == devcanvas-ai.chatView",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "devcanvas-ai.cloneRepository",
+          "when": "true"
+        },
+        {
+          "command": "devcanvas-ai.analyzeZip",
+          "when": "true"
+        },
+        {
+          "command": "devcanvas-ai.analyzeFile",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "devcanvas-ai.explainCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "devcanvas-ai.generateTests",
+          "when": "editorHasSelection"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "devcanvas-ai.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "devcanvas-ai.generateTests",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "devcanvas-ai.analyzeFile",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorIsOpen"
+      },
+      {
+        "command": "devcanvas-ai.chatView.focus",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d"
+      }
+    ],
     "configuration": {
       "title": "DevCanvas AI",
       "properties": {
@@ -125,6 +293,12 @@
     "@lancedb/lancedb": "^0.4.0",
     "axios": "^1.6.7",
     "cheerio": "^1.0.0-rc.12",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "yaml": "^2.3.4",
+    "tree-sitter": "^0.20.4",
+    "tree-sitter-java": "^0.20.2",
+    "tree-sitter-javascript": "^0.20.1",
+    "tree-sitter-typescript": "^0.20.3",
+    "tree-sitter-python": "^0.20.4"
   }
 }

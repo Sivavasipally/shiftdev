@@ -1,10 +1,42 @@
 import axios from 'axios';
 import { UserProfile, LLMResponse } from '../types';
+import { LLMManager, TaskProfile } from '../core/LLMManager';
 
 export class LLMProvider {
-  constructor(private userProfile: UserProfile) {}
+  private llmManager: LLMManager;
+  
+  constructor(private userProfile: UserProfile) {
+    this.llmManager = LLMManager.getInstance(userProfile);
+  }
 
   async generateResponse(
+    messages: Array<{role: 'user' | 'assistant' | 'system'; content: string}>,
+    temperature: number = 0.7,
+    taskType: 'classification' | 'embedding' | 'simple_chat' | 'complex_reasoning' | 'code_generation' | 'explanation' | 'analysis' = 'simple_chat'
+  ): Promise<LLMResponse> {
+    try {
+      // Use the new LLM Manager for intelligent model selection and enhanced features
+      const taskProfile: TaskProfile = {
+        taskType,
+        priority: 'medium',
+        requiresAccuracy: taskType === 'complex_reasoning' || taskType === 'analysis',
+        requiresSpeed: taskType === 'classification' || taskType === 'simple_chat'
+      };
+      
+      const response = await this.llmManager.generateResponse(messages, taskProfile, {
+        temperature,
+        fallbackModel: this.getFallbackModel()
+      });
+      
+      return response;
+    } catch (error) {
+      console.warn('LLM Manager failed, falling back to direct provider calls:', error);
+      // Fallback to original implementation for backward compatibility
+      return this.generateResponseFallback(messages, temperature);
+    }
+  }
+  
+  private async generateResponseFallback(
     messages: Array<{role: 'user' | 'assistant' | 'system'; content: string}>,
     temperature: number = 0.7
   ): Promise<LLMResponse> {
@@ -22,6 +54,23 @@ export class LLMProvider {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
+    try {
+      // Use the new LLM Manager for intelligent embedding model selection
+      const taskProfile: TaskProfile = {
+        taskType: 'embedding',
+        priority: 'medium',
+        requiresSpeed: true
+      };
+      
+      return await this.llmManager.generateEmbedding(text, taskProfile);
+    } catch (error) {
+      console.warn('LLM Manager embedding failed, falling back to direct calls:', error);
+      // Fallback to original implementation
+      return this.generateEmbeddingFallback(text);
+    }
+  }
+  
+  private async generateEmbeddingFallback(text: string): Promise<number[]> {
     try {
       // Use the same provider as the selected LLM for embeddings
       if (this.userProfile.selectedLLM.startsWith('openai')) {
@@ -244,6 +293,55 @@ export class LLMProvider {
       console.error('OpenAI embedding error:', error);
       throw error;
     }
+  }
+
+  private getFallbackModel(): string | undefined {
+    // Define fallback model based on current selection
+    const fallbackMap: Record<string, string> = {
+      'gpt-4-turbo': 'gpt-3.5-turbo',
+      'claude-3-opus': 'claude-3-sonnet',
+      'claude-3-sonnet': 'claude-3-haiku',
+      'gemini-1.5-pro': 'gemini-1.5-flash',
+      'openai-gpt4': 'gpt-3.5-turbo',
+      'claude-3': 'claude-3-haiku',
+      'gemini-pro': 'gemini-1.5-flash'
+    };
+    
+    return fallbackMap[this.userProfile.selectedLLM];
+  }
+  
+  updateUserProfile(userProfile: UserProfile): void {
+    this.userProfile = userProfile;
+    this.llmManager.updateUserProfile(userProfile);
+  }
+  
+  // Enhanced methods using LLM Manager
+  async generateWithTaskProfile(
+    messages: Array<{role: 'user' | 'assistant' | 'system'; content: string}>,
+    taskProfile: TaskProfile,
+    options: { temperature?: number; maxTokens?: number; timeout?: number } = {}
+  ): Promise<LLMResponse> {
+    return this.llmManager.generateResponse(messages, taskProfile, options);
+  }
+  
+  getUsageMetrics(hours: number = 24) {
+    return this.llmManager.getUsageMetrics(hours);
+  }
+  
+  getTotalCost(hours: number = 24): number {
+    return this.llmManager.getTotalCost(hours);
+  }
+  
+  getAverageLatency(modelKey?: string, hours: number = 24): number {
+    return this.llmManager.getAverageLatency(modelKey, hours);
+  }
+  
+  getSuccessRate(modelKey?: string, hours: number = 24): number {
+    return this.llmManager.getSuccessRate(modelKey, hours);
+  }
+  
+  getAvailableModels(capability?: 'chat' | 'embedding' | 'codeGeneration' | 'reasoning' | 'vision'): string[] {
+    return this.llmManager.getAvailableModels(capability);
   }
 
   private getApiKey(): string {

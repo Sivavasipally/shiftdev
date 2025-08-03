@@ -245,11 +245,48 @@ body {
   background-color: var(--vscode-editor-background);
   border: 1px solid var(--vscode-widget-border);
   border-radius: 4px;
+  overflow-x: auto;
 }
 
 .diagram-container svg {
   max-width: 100%;
   height: auto;
+}
+
+.mermaid-diagram {
+  font-family: var(--vscode-editor-font-family);
+  background-color: var(--vscode-textCodeBlock-background);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Make diagram elements clickable when they have navigation */
+.diagram-container .node rect,
+.diagram-container .node circle,
+.diagram-container .node polygon {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.diagram-container .node:hover rect,
+.diagram-container .node:hover circle,
+.diagram-container .node:hover polygon {
+  opacity: 0.8;
+  stroke-width: 2px;
+}
+
+/* Style clickable class names and function names */
+.diagram-container .nodeLabel {
+  pointer-events: all;
+  cursor: pointer;
 }
 
 .metadata-info {
